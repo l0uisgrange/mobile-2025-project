@@ -23,12 +23,14 @@ def list_cameras() -> list[int]:
     return arr
 
 
-def start_camera(index: int = 0) -> cv2.VideoCapture:
+def start_vision(index: int = 0) -> cv2.VideoCapture:
     """
-    Starts the video capture for a given camera index.
+    Starts the video capture and creates a window for a given camera index.
 
     :returns: The video capture object.
     """
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+    cv2.setWindowTitle(WINDOW_NAME, "Control Center")
     cap = cv2.VideoCapture(index)
     return cap
 
@@ -39,7 +41,7 @@ def get_grid(cap: cv2.VideoCapture) -> tuple[np.ndarray, np.ndarray] | None:
 
     :param cap: Video capture object.
 
-    :returns: Scene grid with obstacles
+    :returns: Scene frame, grid and frame_tresh with obstacles
     """
     ret, frame = cap.read()
 
@@ -48,7 +50,10 @@ def get_grid(cap: cv2.VideoCapture) -> tuple[np.ndarray, np.ndarray] | None:
 
     # Filtering
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    frame_filtered = cv2.bilateralFilter(frame_gray, VISION_FILTER_DIAM, VISION_FILTER_SIGMA_COLOR, VISION_FILTER_SIGMA_SPACE)
+    frame_filtered = cv2.bilateralFilter(frame_gray,
+                                         VISION_FILTER_DIAM,
+                                         VISION_FILTER_SIGMA_COLOR,
+                                         VISION_FILTER_SIGMA_SPACE)
 
     # Treshhold
     _, frame_tresh = cv2.threshold(frame_filtered, VISION_TRESH, VISION_TRESH_MAX, cv2.THRESH_BINARY_INV)
@@ -69,7 +74,7 @@ def get_grid(cap: cv2.VideoCapture) -> tuple[np.ndarray, np.ndarray] | None:
             proportion = float(np.mean(cell) / 255)
             grid[r, c] = round(proportion)
 
-    return frame_filtered, grid
+    return frame_gray, grid
 
 
 def build_grid(frame: np.ndarray, grid: np.ndarray) -> np.ndarray:
@@ -108,13 +113,51 @@ def build_grid(frame: np.ndarray, grid: np.ndarray) -> np.ndarray:
     return vis
 
 
-def stop_camera(cap: cv2.VideoCapture):
+def stop_vision(cap: cv2.VideoCapture):
     """
     Stops the video capture for a given capture object.
 
     :param cap: The video capture object.
     """
+    cv2.destroyAllWindows()
     cap.release()
+
+
+def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Stops the video capture for a given capture object.
+
+    :param cap: The video capture object.
+    """
+    ARUCO_DICT = cv2.aruco.DICT_4X4_50
+    return frame, frame
+
+
+def get_robot(frame: np.ndarray):
+    """
+    Computes the position and orientation of the robot from the video frame.
+
+    :param frame: The video frame.
+    :returns: The robot's position and orientation.
+    """
+    position = (0, 0)
+    orientation = 0
+    return position, orientation
+
+
+def get_vision_data(cap: cv2.VideoCapture):
+    """
+    Captures the vision grid from the video capture object, computes the position of the robot and uses ARUCO markers.
+
+    :param cap: The video capture object.
+
+    :returns: The frame, grid, markers and robot position and orientatio
+    """
+    frame, grid = get_grid(cap)
+    frame, markers = aruko_projection(frame)
+    robot = get_robot(frame)
+
+    return frame, grid, markers, robot
 
 
 if __name__ == "__main__":
