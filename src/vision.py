@@ -123,14 +123,14 @@ def stop_vision(cap: cv2.VideoCapture):
     cap.release()
 
 
-def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, bool]:
     """
     Stops the video capture for a given capture object.
 
-    :param cap: The video capture object.
+    :param frame: The video capture object.
     """
-    ARUCO_DICT = cv2.aruco.DICT_4X4_50
-    return frame, frame
+    # TODO do aruko projection using 1,2,3,4 symbols IDs
+    return frame, True
 
 
 def get_robot(frame: np.ndarray):
@@ -140,6 +140,7 @@ def get_robot(frame: np.ndarray):
     :param frame: The video frame.
     :returns: The robot's position and orientation.
     """
+    # TODO get robot position and orientation
     position = (0, 0)
     orientation = 0
     return position, orientation
@@ -151,13 +152,13 @@ def get_vision_data(cap: cv2.VideoCapture):
 
     :param cap: The video capture object.
 
-    :returns: The frame, grid, markers and robot position and orientatio
+    :returns: The frame, grid, projected state and robot position and orientation
     """
     frame, grid = get_grid(cap)
-    frame, markers = aruko_projection(frame)
+    frame, projected = aruko_projection(frame)
     robot = get_robot(frame)
 
-    return frame, grid, markers, robot
+    return frame, grid, projected, robot
 
 
 if __name__ == "__main__":
