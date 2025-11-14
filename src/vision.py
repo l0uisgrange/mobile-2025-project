@@ -1,11 +1,7 @@
-from typing import Any
-
 import cv2
 import numpy as np
-from cv2 import Mat
-from numpy import ndarray, dtype, integer, floating
 
-from src.consts import GRID_SHAPE
+from src.consts import *
 
 
 def list_cameras() -> list[int]:
@@ -37,7 +33,7 @@ def start_camera(index: int = 0) -> cv2.VideoCapture:
     return cap
 
 
-def get_grid(cap: cv2.VideoCapture) -> tuple[ndarray, ndarray] | None:
+def get_grid(cap: cv2.VideoCapture) -> tuple[np.ndarray, np.ndarray] | None:
     """
     Reads a frame from the given video capture and returns the grid.
 
@@ -59,14 +55,16 @@ def get_grid(cap: cv2.VideoCapture) -> tuple[ndarray, ndarray] | None:
 
     # Build grid
     rows, cols = GRID_SHAPE
-    cell_height, cell_width = frame_tresh.shape
+    h, w = frame_tresh.shape
+    cell_height = h // rows
+    cell_width = w // cols
     grid = np.zeros((rows, cols), dtype=int)
     for r in range(rows):
         for c in range(cols):
             y0 = r * cell_height
             x0 = c * cell_width
-            y1 = y0 + cell_height
-            x1 = x0 + cell_width
+            y1 = h if r == rows - 1 else (y0 + cell_height)
+            x1 = w if c == cols - 1 else (x0 + cell_width)
             cell = frame_tresh[y0:y1, x0:x1]
             proportion = float(np.mean(cell) / 255)
             grid[r, c] = 1 if proportion >= 0.5 else 0 # TODO remove magic number
@@ -90,13 +88,22 @@ def build_grid(frame: np.ndarray, grid: np.ndarray) -> np.ndarray:
     cell_height = h // rows
     cell_width = w // cols
 
+    for r in range(rows):
+        for c in range(cols):
+            y0 = r * cell_height
+            x0 = c * cell_width
+            y1 = h if r == rows - 1 else (y0 + cell_height)
+            x1 = w if c == cols - 1 else (x0 + cell_width)
+            if grid[r, c]:
+                cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), (0, 0, 0), thickness=-1)
+
     # lignes de grille
     for r in range(1, rows):
         y = r * cell_height
-        cv2.line(vis, (0, y), (w, y), (128, 128, 128), 5)
+        cv2.line(vis, (0, y), (w, y), GRID_COLOR, GRID_THICKNESS)
     for c in range(1, cols):
         x = c * cell_width
-        cv2.line(vis, (x, 0), (x, h), (128, 128, 128), 5)
+        cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
 
     return vis
 
