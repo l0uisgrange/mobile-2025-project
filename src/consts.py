@@ -1,1 +1,1 @@
-# constantes
+GRID_SHAPE = (40, 40)
