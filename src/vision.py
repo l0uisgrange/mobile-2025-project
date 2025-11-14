@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from numpy import ndarray
 
 from src.consts import *
 
@@ -35,7 +36,7 @@ def start_vision(index: int = 0) -> cv2.VideoCapture:
     return cap
 
 
-def get_grid(cap: cv2.VideoCapture) -> tuple[np.ndarray, np.ndarray] | None:
+def get_grid(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
     """
     Reads a frame from the given video capture and returns the grid.
 
@@ -43,10 +44,6 @@ def get_grid(cap: cv2.VideoCapture) -> tuple[np.ndarray, np.ndarray] | None:
 
     :returns: Scene frame, grid and frame_tresh with obstacles
     """
-    ret, frame = cap.read()
-
-    if not ret:
-        return None
 
     # Filtering
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -154,11 +151,19 @@ def get_vision_data(cap: cv2.VideoCapture):
 
     :returns: The frame, grid, projected state and robot position and orientation
     """
-    frame, grid = get_grid(cap)
+    frame = get_image(cap)
+    frame, grid = get_grid(frame)
     frame, projected = aruko_projection(frame)
     robot = get_robot(frame)
 
     return frame, grid, projected, robot
+
+
+def get_image(cap: cv2.VideoCapture) -> ndarray | None:
+    ret, frame = cap.read()
+    if not ret:
+        return None
+    return frame
 
 
 if __name__ == "__main__":
