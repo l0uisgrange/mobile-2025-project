@@ -21,7 +21,7 @@ while True:
     # Visualization
     vis = build_grid(frame, grid)
     combined = np.hstack((frame, vis))
-    draw_control_room(combined)
+    draw_control_room(combined, projected, robot)
 
 # Stop
 stop_vision(cap)

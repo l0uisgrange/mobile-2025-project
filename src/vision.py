@@ -126,8 +126,39 @@ def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, bool]:
 
     :param frame: The video capture object.
     """
-    # TODO do aruko projection using 1,2,3,4 symbols IDs
-    return frame, True
+    # Detect markers using aruco OpenCV module
+    height, width = frame.shape[:2]
+
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    parameters = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+    corners, ids, rejected = detector.detectMarkers(frame)
+
+    # Projection
+    projection_points = np.float32([
+        [0, 0],
+        [width - 1, 0],
+        [width - 1, height - 1],
+        [0, height - 1]
+    ])
+
+    if ids is not None and len(ids) >= 4:
+        marker_centers = {}
+        # Find aruco symbol center
+        for i, marker_id in enumerate(ids.flatten()):
+            c = corners[i][0]
+            center_x = np.mean(c[:, 0])
+            center_y = np.mean(c[:, 1])
+            marker_centers[marker_id] = [center_x, center_y]
+
+        pts_src = np.float32([marker_centers[mid] for mid in VISION_MARKERS if mid in marker_centers])
+
+        # Project onto aruco
+        M = cv2.getPerspectiveTransform(pts_src, projection_points)
+        projected = cv2.warpPerspective(frame, M,(width, height))
+        return projected, True
+
+    return frame, False
 
 
 def get_robot(frame: np.ndarray):
@@ -140,6 +171,7 @@ def get_robot(frame: np.ndarray):
     # TODO get robot position and orientation
     position = (0, 0)
     orientation = 0
+    return None
     return position, orientation
 
 
