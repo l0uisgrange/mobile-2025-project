@@ -154,6 +154,9 @@ def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, bool]:
         pts_src = np.float32([marker_centers[mid] for mid in VISION_MARKERS if mid in marker_centers])
 
         # Project onto aruco
+        if len(projection_points) != len(pts_src):
+            print("Not enough markers detected")
+            return frame, False
         M = cv2.getPerspectiveTransform(pts_src, projection_points)
         projected = cv2.warpPerspective(frame, M,(width, height))
         return projected, True
@@ -184,8 +187,8 @@ def get_vision_data(cap: cv2.VideoCapture):
     :returns: The frame, grid, projected state and robot position and orientation
     """
     frame = get_image(cap)
-    frame, grid = get_grid(frame)
     frame, projected = aruko_projection(frame)
+    frame, grid = get_grid(frame)
     robot = get_robot(frame)
 
     return frame, grid, projected, robot
