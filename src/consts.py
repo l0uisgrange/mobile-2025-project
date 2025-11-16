@@ -47,3 +47,13 @@ COLOR_WHITE = (255, 255, 255)
 COLOR_GRAY = (150, 150, 150)
 COLOR_RED = (0, 0, 255)
 COLOR_GREEN = (0, 255, 0)
+
+# ——————————————————————————
+# Navigation
+# ——————————————————————————
+
+VOID = 0  # TODO: bouger
+OBSTACLE = -1  # TODO: bouger
+X = 0 # TODO: bouger
+Y = 1 # TODO: bouger
+WEIGHT = 1
