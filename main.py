@@ -2,7 +2,7 @@ from src.utils import *
 from src.vision import *
 
 # Initialization
-cap = start_vision()
+cap = start_vision(1)
 
 # Main loop
 while True:
@@ -19,7 +19,7 @@ while True:
     # ———————————————————————
 
     # Visualization
-    vis = build_grid(frame, grid)
+    vis = build_grid(frame, grid, robot)
     combined = np.hstack((frame, vis))
     draw_control_room(combined, projected, robot)
 

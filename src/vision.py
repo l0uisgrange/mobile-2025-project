@@ -40,7 +40,7 @@ def get_grid(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
     """
     Reads a frame from the given video capture and returns the grid.
 
-    :param cap: Video capture object.
+    :param frame: Frame
 
     :returns: Scene frame, grid and frame_tresh with obstacles
     """
@@ -71,21 +71,22 @@ def get_grid(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
             proportion = float(np.mean(cell) / 255)
             grid[r, c] = round(proportion)
 
-    return frame_gray, grid
+    return frame, grid
 
 
-def build_grid(frame: np.ndarray, grid: np.ndarray) -> np.ndarray:
+def build_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[float, float]] | None) -> np.ndarray:
     """
     Prepares the grid and frame for visualization
 
-    :param frame:
-    :param grid:
+    :param robot: Current robot position and orientation
+    :param frame: Frame
+    :param grid: Grid data
 
     :returns: The Numpy array grid to display
     """
     rows, cols = grid.shape
     h, w = frame.shape[:2]
-    vis = np.ones_like(frame, dtype=np.uint8) * 255  # fond blanc
+    vis = np.ones_like(frame, dtype=np.uint8) * 255
 
     cell_height = h // rows
     cell_width = w // cols
@@ -99,13 +100,18 @@ def build_grid(frame: np.ndarray, grid: np.ndarray) -> np.ndarray:
             if grid[r, c]:
                 cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), COLOR_BLACK, thickness=-1)
 
-    # lignes de grille
+    # Gris lines
     for r in range(1, rows):
         y = r * cell_height
         cv2.line(vis, (0, y), (w, y), GRID_COLOR, GRID_THICKNESS)
     for c in range(1, cols):
         x = c * cell_width
         cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
+
+    # Robot position
+    if robot is not None:
+        orientation, (x, y) = robot
+        cv2.rectangle(vis, (int(x), int(y)), (int(x + 20), int(y + 20)), COLOR_RED, thickness=-1)
 
     return vis
 
@@ -120,19 +126,32 @@ def stop_vision(cap: cv2.VideoCapture):
     cap.release()
 
 
-def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, bool]:
+def get_markers(frame: np.ndarray):
     """
-    Stops the video capture for a given capture object.
+    Get aruko markers information from given frame.
 
-    :param frame: The video capture object.
+    :param frame: The frame.
     """
     # Detect markers using aruco OpenCV module
-    height, width = frame.shape[:2]
-
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     parameters = cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
     corners, ids, rejected = detector.detectMarkers(frame)
+
+    return corners, ids, rejected
+
+
+def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool]:
+    """
+    Stops the video capture for a given capture object.
+
+    :param frame: The frame.
+    """
+    # Extract markers data
+    corners, ids, rejected = markers
+
+    # Detect markers using aruco OpenCV module
+    height, width = frame.shape[:2]
 
     # Projection
     projection_points = np.float32([
@@ -146,6 +165,8 @@ def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, bool]:
         marker_centers = {}
         # Find aruco symbol center
         for i, marker_id in enumerate(ids.flatten()):
+            if marker_id not in VISION_MARKERS:
+                continue
             c = corners[i][0]
             center_x = np.mean(c[:, 0])
             center_y = np.mean(c[:, 1])
@@ -158,24 +179,29 @@ def aruko_projection(frame: np.ndarray) -> tuple[np.ndarray, bool]:
             print("Not enough markers detected")
             return frame, False
         M = cv2.getPerspectiveTransform(pts_src, projection_points)
-        projected = cv2.warpPerspective(frame, M,(width, height))
+        projected = cv2.warpPerspective(frame, M, (width, height))
         return projected, True
 
     return frame, False
 
 
-def get_robot(frame: np.ndarray):
+def get_robot(frame: np.ndarray, markers) -> tuple[float, tuple[float, float]] | None:
     """
     Computes the position and orientation of the robot from the video frame.
 
     :param frame: The video frame.
     :returns: The robot's position and orientation.
     """
-    # TODO get robot position and orientation
-    position = (0, 0)
-    orientation = 0
+    # Extract markers data
+    corners, ids, rejected = markers
+
+    if ids is not None and VISION_ROBOT_MARKER in ids:
+        index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
+        center = np.mean(corners[0][index], axis=0)
+        orientation = 0
+        return orientation, center
+
     return None
-    return position, orientation
 
 
 def get_vision_data(cap: cv2.VideoCapture):
@@ -187,9 +213,10 @@ def get_vision_data(cap: cv2.VideoCapture):
     :returns: The frame, grid, projected state and robot position and orientation
     """
     frame = get_image(cap)
-    frame, projected = aruko_projection(frame)
+    markers = get_markers(frame)
+    frame, projected = aruko_projection(frame, markers)
     frame, grid = get_grid(frame)
-    robot = get_robot(frame)
+    robot = get_robot(frame, markers)
 
     return frame, grid, projected, robot
 

@@ -4,15 +4,18 @@ import numpy as np
 from src.consts import *
 
 
-def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, float]):
+def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tuple[float, float]] | None):
     """
     Shows the grid inside a new window
 
+    :param projected: Projection state
+    :param robot: Robot data
     :param frame: The raw image frame
     """
-    # Converting from grayscale (2D) to RGB (3D)
+    # Ensure frame is 3D (BGR)
     if frame.ndim == 2:
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+        print("Input has wrong dimension")
+        exit(1)
 
     # Add status bar
     height, width, = frame.shape[:2]
@@ -38,7 +41,7 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, fl
         cv2.LINE_AA
     )
 
-    # Add robot position
+    # Add robot status
     marker_color = COLOR_RED if robot is None else COLOR_GREEN
     cv2.rectangle(bar,
                   (TEXT_PADDING, TEXT_PADDING + STATUS_BAR_SPACING),
@@ -55,9 +58,10 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, fl
         cv2.LINE_AA
     )
     if robot is not None:
+        orientation, (x, y) = robot
         cv2.putText(
             bar,
-            '(' + ','.join(str(val) for val in robot) + ')',
+            '(' + str(int(x)) + ', ' + str(int(y)) + ') AT ' + str(int(orientation)) + ' DEGREES',
             (text_x + TEXT_ROBOT_POSITION, TEXT_PADDING + STATUS_INDICATOR_SIZE + STATUS_BAR_SPACING - TEXT_DELTA),
             cv2.FONT_HERSHEY_DUPLEX,
             1,
