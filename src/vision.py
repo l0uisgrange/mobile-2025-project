@@ -185,11 +185,11 @@ def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool]:
     return frame, False
 
 
-def get_robot(frame: np.ndarray, markers) -> tuple[float, tuple[float, float]] | None:
+def get_robot(markers) -> tuple[float, tuple[float, float]] | None:
     """
     Computes the position and orientation of the robot from the video frame.
 
-    :param frame: The video frame.
+    :param markers: The markers data.
     :returns: The robot's position and orientation.
     """
     # Extract markers data
@@ -197,7 +197,7 @@ def get_robot(frame: np.ndarray, markers) -> tuple[float, tuple[float, float]] |
 
     if ids is not None and VISION_ROBOT_MARKER in ids:
         index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
-        center = np.mean(corners[0][index], axis=0)
+        center = np.mean(corners[index][0], axis=0)
         orientation = 0
         return orientation, center
 
@@ -216,7 +216,7 @@ def get_vision_data(cap: cv2.VideoCapture):
     markers = get_markers(frame)
     frame, projected = aruko_projection(frame, markers)
     frame, grid = get_grid(frame)
-    robot = get_robot(frame, markers)
+    robot = get_robot(markers)
 
     return frame, grid, projected, robot
 
@@ -229,4 +229,5 @@ def get_image(cap: cv2.VideoCapture) -> ndarray | None:
 
 
 if __name__ == "__main__":
+
     print('Cameras found', list_cameras())

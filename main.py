@@ -2,7 +2,7 @@ from src.utils import *
 from src.vision import *
 
 # Initialization
-cap = start_vision(1)
+cap = start_vision(0)
 
 # Main loop
 while True:
