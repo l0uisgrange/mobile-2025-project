@@ -1,5 +1,6 @@
 from src.utils import *
-
+import numpy as np
+import cv2
 
 def list_cameras() -> list[int]:
     """
