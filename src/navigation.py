@@ -9,6 +9,7 @@ Inspired by https://github.com/qiao/PathFinding.js/blob/master/src/finders/AStar
 
 import heapq
 import math
+import numpy as np
 
 from dataclasses import dataclass
 from itertools import count
