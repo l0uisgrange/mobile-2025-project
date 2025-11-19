@@ -4,7 +4,7 @@ import numpy as np
 from src.consts import *
 
 
-def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tuple[float, float]] | None, end: tuple[int, int] | None):
+def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tuple[int, int]] | None, end: tuple[int, int] | None):
     """
     Shows the grid inside a new window
 
