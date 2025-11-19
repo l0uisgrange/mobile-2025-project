@@ -35,7 +35,7 @@ class Navigation:
         self.rows, self.cols = GRID_SHAPE
         self.grid = np.zeros((self.rows, self.cols), dtype=int)
         self.plan = []
-        self.node_grid = [[Node(position=(r, c), nature=VOID)
+        self.node_grid = [[Node(position=(r, c), nature=CELL_VOID)
                            for c in range(self.cols)] for r in range(self.rows)]
         self.counter = count()
 
@@ -56,7 +56,7 @@ class Navigation:
             return (False, self.plan)
 
     def a_star(self, start, end):
-        self.node_grid = [[Node(position=(r, c), nature=VOID)
+        self.node_grid = [[Node(position=(r, c), nature=CELL_VOID)
                            for c in range(self.cols)] for r in range(self.rows)]
         open_heap = []
 
@@ -137,7 +137,7 @@ class Navigation:
 
             # Check if new position is within grid bounds and not an obstacle
             if (0 <= new_pos[0] < GRID_SHAPE[0] and 0 <= new_pos[1] < GRID_SHAPE[1] and
-                    self.grid[new_pos[0], new_pos[1]] == VOID):
+                    self.grid[new_pos[0], new_pos[1]] == CELL_VOID):
 
                 if i == 0:
                     s0 = True
@@ -157,7 +157,7 @@ class Navigation:
 
             # Check if new position is within grid bounds and not an obstacle
             if (0 <= new_pos[0] < GRID_SHAPE[0] and 0 <= new_pos[1] < GRID_SHAPE[1] and
-                    self.grid[new_pos[0], new_pos[1]] == VOID):
+                    self.grid[new_pos[0], new_pos[1]] == CELL_VOID):
 
                 if move == (-1, 1) and s0 and s3:
                     neighbors.append(self.node_grid[new_pos[0]][new_pos[1]])
@@ -238,14 +238,14 @@ if __name__ == "__main__":
                 dragging_start = True
             elif (grid_y, grid_x) == tuple(end):
                 dragging_end = True
-            elif nav.grid[grid_y, grid_x] == OBSTACLE:
+            elif nav.grid[grid_y, grid_x] == CELL_OBSTACLE:
                 erasing_obstacle = True
-                nav.grid[grid_y, grid_x] = VOID
+                nav.grid[grid_y, grid_x] = CELL_VOID
                 path = []
                 plan = []
             else:
                 drawing_obstacle = True
-                nav.grid[grid_y, grid_x] = OBSTACLE
+                nav.grid[grid_y, grid_x] = CELL_OBSTACLE
                 path = []
                 plan = []
 
@@ -259,11 +259,11 @@ if __name__ == "__main__":
                 path = []
                 plan = []
             elif drawing_obstacle:
-                nav.grid[grid_y, grid_x] = OBSTACLE
+                nav.grid[grid_y, grid_x] = CELL_OBSTACLE
                 path = []
                 plan = []
             elif erasing_obstacle:
-                nav.grid[grid_y, grid_x] = VOID
+                nav.grid[grid_y, grid_x] = CELL_VOID
                 path = []
                 plan = []
 
@@ -293,7 +293,7 @@ if __name__ == "__main__":
         # Draw obstacles
         for r in range(GRID_SHAPE[0]):
             for c in range(GRID_SHAPE[1]):
-                if nav.grid[r, c] == OBSTACLE:
+                if nav.grid[r, c] == CELL_OBSTACLE:
                     grid_visual[r, c] = (0, 0, 0)
 
         # Draw path in yellow
