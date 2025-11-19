@@ -23,11 +23,11 @@ while True:
     # Catch aruko markers
     markers = get_markers(frame)
     # Project the plane accordingly
-    frame, projected = aruko_projection(frame, markers)
+    proj_frame, projected, proj_matrix = aruko_projection(frame, markers)
     # Get targets' position and orientation
-    robot, end = get_targets(frame, markers)
+    robot, end = get_targets(proj_frame, markers, proj_matrix)
     # Create the grid with targets
-    grid = set_targets_grid(frame, robot, end)
+    grid = set_targets_grid(proj_frame, robot, end)
 
     # ——————————————————————————————————————————————
     # LOCAL OBSTACLE AVOIDANCE (src.local)
@@ -40,10 +40,10 @@ while True:
     # ——————————————————————————————————————————————
 
     # Path finding
-    #if robot is not None:
-    #    nav.path = nav.a_star(robot[0], end)
-    #    if nav.path is not None:
-    #        nav.plan = nav.generate_plan(robot[0], end)
+    if robot is not None and end is not None:
+        nav.path = nav.a_star(robot[1], end)
+        if nav.path is not None:
+            nav.plan = nav.generate_plan(robot[1], end)
     # Populate the grid with path and plan
     # frame, grid = set_path_grid(grid, nav.path, nav.plan)
 
@@ -57,8 +57,10 @@ while True:
     # VISUALIZATION
     # ——————————————————————————————————————————————
 
-    vis = render_grid(frame, grid, robot)
-    combined = np.hstack((frame, vis))
+    vis = render_grid(proj_frame, grid, robot)
+    combined_bottom = np.hstack((proj_frame, vis))
+    combined_top = np.hstack((frame, vis))
+    combined = np.vstack((combined_top, combined_bottom))
     draw_control_room(combined, projected, robot, end)
 
 # Stop

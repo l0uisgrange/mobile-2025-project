@@ -143,7 +143,7 @@ def get_markers(frame: np.ndarray):
     return corners, ids, rejected
 
 
-def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool]:
+def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool, np.ndarray | None]:
     """
     Stops the video capture for a given capture object.
 
@@ -178,24 +178,28 @@ def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool]:
 
         # Project onto aruco
         if len(projection_points) != len(pts_src):
-            return frame, False
+            return frame, False, None
         M = cv2.getPerspectiveTransform(pts_src, projection_points)
         projected = cv2.warpPerspective(frame, M, (width, height))
-        return projected, True
+        return projected, True, M
 
-    return frame, False
+    return frame, False, None
 
 
-def get_targets(frame: np.ndarray, markers) -> tuple[tuple[float, tuple[int, int]] | None, tuple[int, int] | None]:
+def get_targets(frame: np.ndarray, markers, matrix: np.ndarray | None) -> tuple[tuple[float, tuple[int, int]] | None, tuple[int, int] | None]:
     """
     Computes the position and orientation of the robot and the position of the target from the video frame.
 
+    :param matrix: Projection matrix
     :param frame: The current image frame
     :param markers: The markers' data.
     :returns: The robot's position and orientation and the target's position.
     """
     # Extract markers data
     corners, ids, rejected = markers
+
+    if matrix is None:
+        return None, None
 
     robot = None
     orientation = 0
@@ -205,13 +209,13 @@ def get_targets(frame: np.ndarray, markers) -> tuple[tuple[float, tuple[int, int
     if ids is not None and VISION_ROBOT_MARKER in ids:
         index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
         center = np.mean(corners[index][0], axis=0)
-        robot = orientation, to_grid_units(frame, center)
+        robot = orientation, to_grid_units(frame, project_point(center, matrix))
 
     # Find the end target
     if ids is not None and VISION_TARGET_MARKER in ids:
         index = np.where(ids == VISION_TARGET_MARKER)[0][0]
         center = np.mean(corners[index][0], axis=0)
-        end = to_grid_units(frame, center)
+        end = to_grid_units(frame, project_point(center, matrix))
 
     return robot, end
 
@@ -222,7 +226,18 @@ def get_image(cap: cv2.VideoCapture) -> np.ndarray | None:
         return None
     return frame
 
+def project_point(point: tuple[float, float], matrix: np.ndarray) -> tuple[float, float]:
+    """
+    Projects a point in the original frame to the grid
+
+    :param point: The point in the original frame
+    :param matrix: The projection matrix
+    :returns point: The coordinate on the grid plane
+    """
+    pt = np.array([[[float(point[0]), float(point[1])]]], dtype=np.float32)
+    transformed = cv2.perspectiveTransform(pt, matrix)
+    return float(transformed[0][0][0]), float(transformed[0][0][1])
+
 
 if __name__ == "__main__":
-
     print('Cameras found', list_cameras())
