@@ -32,7 +32,8 @@ def start_vision(index: int = 0) -> cv2.VideoCapture:
     return cap
 
 
-def set_targets_grid(frame: np.ndarray, robot: tuple[float, tuple[int, int]], end: tuple[int, int]) -> np.ndarray | None:
+def set_targets_grid(frame: np.ndarray, robot: tuple[float, tuple[int, int]],
+                     end: tuple[int, int]) -> np.ndarray | None:
     """
     Reads a frame from the given video capture and returns the grid.
 
@@ -186,7 +187,8 @@ def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool, np.n
     return frame, False, None
 
 
-def get_targets(frame: np.ndarray, markers, matrix: np.ndarray | None) -> tuple[tuple[float, tuple[int, int]] | None, tuple[int, int] | None]:
+def get_targets(frame: np.ndarray, markers, matrix: np.ndarray | None) -> tuple[
+    tuple[float, tuple[int, int]] | None, tuple[int, int] | None]:
     """
     Computes the position and orientation of the robot and the position of the target from the video frame.
 
@@ -225,6 +227,7 @@ def get_image(cap: cv2.VideoCapture) -> np.ndarray | None:
     if not ret:
         return None
     return frame
+
 
 def project_point(point: tuple[float, float], matrix: np.ndarray) -> tuple[float, float]:
     """

@@ -9,10 +9,9 @@ Inspired by https://github.com/qiao/PathFinding.js/blob/master/src/finders/AStar
 
 import heapq
 import math
-import numpy as np
 
-from itertools import count
 from dataclasses import dataclass
+from itertools import count
 
 from src.consts import *
 
@@ -88,7 +87,7 @@ class Navigation:
                     continue
 
                 g_score = node.g + (1 if (neighbor.position[X] - node.position[X] ==
-                                    0 or neighbor.position[Y] - node.position[Y] == 0) else math.sqrt(2))
+                                          0 or neighbor.position[Y] - node.position[Y] == 0) else math.sqrt(2))
 
                 if (not neighbor.opened) or (g_score < neighbor.g):
                     neighbor.g = g_score
@@ -194,12 +193,12 @@ class Navigation:
         plan = []
         previous_direction = None
         for i in range(1, len(path)):
-            current_direction = (path[i][0] - path[i-1][0],
-                                 path[i][1] - path[i-1][1])
+            current_direction = (path[i][0] - path[i - 1][0],
+                                 path[i][1] - path[i - 1][1])
             if current_direction != previous_direction:
-                plan.append(path[i-1])
+                plan.append(path[i - 1])
                 previous_direction = current_direction
-        #plan.append(path[-1])
+        # plan.append(path[-1])
         plan = plan[1:]
         plan.append(end)
         return plan
@@ -226,6 +225,7 @@ if __name__ == "__main__":
     CELL_SIZE = 8
     WINDOW_WIDTH = GRID_SHAPE[1] * CELL_SIZE
     WINDOW_HEIGHT = GRID_SHAPE[0] * CELL_SIZE
+
 
     def mouse_callback(event, x, y, flags, param):
         global dragging_start, dragging_end, drawing_obstacle, erasing_obstacle, path, plan
@@ -273,6 +273,7 @@ if __name__ == "__main__":
             drawing_obstacle = False
             erasing_obstacle = False
 
+
     cv2.namedWindow("Pathfinding")
     cv2.setMouseCallback("Pathfinding", mouse_callback)
 
@@ -300,7 +301,6 @@ if __name__ == "__main__":
         for pos in path:
             grid_visual[pos[0], pos[1]] = (0, 255, 255)
 
-
         # Draw start and end
         grid_visual[start[0], start[1]] = (0, 255, 0)  # Green
         grid_visual[end[0], end[1]] = (0, 0, 255)  # Red
@@ -326,7 +326,7 @@ if __name__ == "__main__":
         if key == ord('s'):
             # Reset node grid
             nav.node_grid = [[Node(position=(r, c), nature=nav.grid[r, c])
-                             for c in range(GRID_SHAPE[1])] for r in range(GRID_SHAPE[0])]
+                              for c in range(GRID_SHAPE[1])] for r in range(GRID_SHAPE[0])]
             nav.counter = count()
 
             path = nav.a_star(tuple(start), tuple(end))

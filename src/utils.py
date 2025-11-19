@@ -4,7 +4,8 @@ import numpy as np
 from src.consts import *
 
 
-def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tuple[int, int]] | None, end: tuple[int, int] | None):
+def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tuple[int, int]] | None,
+                      end: tuple[int, int] | None):
     """
     Shows the grid inside a new window
 
@@ -31,7 +32,8 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tu
         padding = (position[0] * STATUS_BAR_SPACING[0], position[1] * STATUS_BAR_SPACING[1])
         cv2.rectangle(bar,
                       (TEXT_PADDING + padding[0], TEXT_PADDING + padding[1]),
-                      (STATUS_INDICATOR_SIZE + TEXT_PADDING + padding[0], STATUS_INDICATOR_SIZE + TEXT_PADDING + padding[1]),
+                      (STATUS_INDICATOR_SIZE + TEXT_PADDING + padding[0],
+                       STATUS_INDICATOR_SIZE + TEXT_PADDING + padding[1]),
                       marker_color, -1)
         cv2.putText(
             bar,
@@ -47,7 +49,8 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tu
             cv2.putText(
                 bar,
                 gray_text,
-                (text_x + padding[0] + TEXT_GRAY_POSITION, TEXT_PADDING + STATUS_INDICATOR_SIZE - TEXT_DELTA + padding[1]),
+                (text_x + padding[0] + TEXT_GRAY_POSITION,
+                 TEXT_PADDING + STATUS_INDICATOR_SIZE - TEXT_DELTA + padding[1]),
                 cv2.FONT_HERSHEY_DUPLEX,
                 STATUS_BAR_FONTSCALE,
                 COLOR_GRAY,
@@ -55,8 +58,11 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tu
             )
 
     show_status("MARKERS", (0, 0), projected)
-    show_status("ROBOT", (0, 1), robot is not None, gray_text='(' + str(robot[1][0]) + ', ' + str(robot[1][1]) + ') AT ' + str(int(robot[0])) + ' DEGREES' if robot else None)
-    show_status("TARGET", (1, 0), end is not None, gray_text='('+ str(end[0]) + ', ' + str(end[1]) +')' if end else None)
+    show_status("ROBOT", (0, 1), robot is not None,
+                gray_text='(' + str(robot[1][0]) + ', ' + str(robot[1][1]) + ') AT ' + str(
+                    int(robot[0])) + ' DEGREES' if robot else None)
+    show_status("TARGET", (1, 0), end is not None,
+                gray_text='(' + str(end[0]) + ', ' + str(end[1]) + ')' if end else None)
     show_status("PATH", (1, 1), False)
 
     combined_frame = np.vstack((frame, bar))
