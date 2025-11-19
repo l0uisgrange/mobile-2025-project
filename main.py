@@ -59,7 +59,7 @@ while True:
 
     vis = render_grid(frame, grid, robot)
     combined = np.hstack((frame, vis))
-    draw_control_room(combined, projected, robot)
+    draw_control_room(combined, projected, robot, end)
 
 # Stop
 stop_vision(cap)
