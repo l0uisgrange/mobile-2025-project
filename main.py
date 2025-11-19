@@ -1,8 +1,9 @@
-from src.utils import *
+from src.navigation import Navigation
 from src.vision import *
 
 # Initialization
 cap = start_vision(0)
+nav = Navigation()
 
 # Main loop
 while True:
@@ -11,15 +12,52 @@ while True:
         print("Exiting with command 'q'")
         break
 
+    # ——————————————————————————————————————————————
+    # VISION (src.vision)
+    # ——————————————————————————————————————————————
+
     # Capture and compute vision data
-    frame, grid, projected, robot = get_vision_data(cap)
+    frame = get_image(cap)
+    if frame is None:
+        continue
+    # Catch aruko markers
+    markers = get_markers(frame)
+    # Project the plane accordingly
+    frame, projected = aruko_projection(frame, markers)
+    # Get targets' position and orientation
+    robot, end = get_targets(frame, markers)
+    # Create the grid with targets
+    grid = set_targets_grid(frame, robot, end)
 
-    # ———————————————————————
-    # HERE MAIN LOGIC (LOCAL NAV, GLOBAL NAV, FILTERING, ETC.)
-    # ———————————————————————
+    # ——————————————————————————————————————————————
+    # LOCAL OBSTACLE AVOIDANCE (src.local)
+    # ——————————————————————————————————————————————
 
-    # Visualization
-    vis = build_grid(frame, grid, robot)
+    # HERE
+
+    # ——————————————————————————————————————————————
+    # GLOBAL NAVIGATION (src.navigation)
+    # ——————————————————————————————————————————————
+
+    # Path finding
+    #if robot is not None:
+    #    nav.path = nav.a_star(robot[0], end)
+    #    if nav.path is not None:
+    #        nav.plan = nav.generate_plan(robot[0], end)
+    # Populate the grid with path and plan
+    # frame, grid = set_path_grid(grid, nav.path, nav.plan)
+
+    # ——————————————————————————————————————————————
+    # MOTION (src.motion)
+    # ——————————————————————————————————————————————
+
+    # HERE
+
+    # ——————————————————————————————————————————————
+    # VISUALIZATION
+    # ——————————————————————————————————————————————
+
+    vis = render_grid(frame, grid, robot)
     combined = np.hstack((frame, vis))
     draw_control_room(combined, projected, robot)
 

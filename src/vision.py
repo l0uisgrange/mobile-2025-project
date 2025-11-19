@@ -1,8 +1,4 @@
-import cv2
-import numpy as np
-from numpy import ndarray
-
-from src.consts import *
+from src.utils import *
 
 
 def list_cameras() -> list[int]:
@@ -36,13 +32,13 @@ def start_vision(index: int = 0) -> cv2.VideoCapture:
     return cap
 
 
-def get_grid(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
+def set_targets_grid(frame: np.ndarray, robot: tuple[float, tuple[int, int]], end: tuple[int, int]) -> np.ndarray | None:
     """
     Reads a frame from the given video capture and returns the grid.
 
     :param frame: Frame
 
-    :returns: Scene frame, grid and frame_tresh with obstacles
+    :returns: Scene frame, grid and frame_tresh with obstacles and targets
     """
 
     # Filtering
@@ -68,13 +64,17 @@ def get_grid(frame: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
             y1 = h if r == rows - 1 else (y0 + cell_height)
             x1 = w if c == cols - 1 else (x0 + cell_width)
             cell = frame_tresh[y0:y1, x0:x1]
-            proportion = float(np.mean(cell) / 255)
-            grid[r, c] = round(proportion)
+            grid[r, c] = CELL_OBSTACLE if np.mean(cell) > 255 / 2 else CELL_VOID
 
-    return frame, grid
+    if robot is not None:
+        grid[robot[1][0], robot[1][1]] = CELL_ROBOT
+    if end is not None:
+        grid[end[0], end[1]] = CELL_TARGET
+
+    return grid
 
 
-def build_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[float, float]] | None) -> np.ndarray:
+def render_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[float, float]] | None) -> np.ndarray:
     """
     Prepares the grid and frame for visualization
 
@@ -97,8 +97,15 @@ def build_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[fl
             x0 = c * cell_width
             y1 = h if r == rows - 1 else (y0 + cell_height)
             x1 = w if c == cols - 1 else (x0 + cell_width)
-            if grid[r, c]:
-                cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), COLOR_BLACK, thickness=-1)
+            color = COLOR_BLACK
+            if grid[r, c] == CELL_ROBOT:
+                color = COLOR_RED
+            elif grid[r, c] == CELL_UPSCALE:
+                color = COLOR_GRAY
+            elif grid[r, c] == CELL_TARGET:
+                color = COLOR_GREEN
+            if grid[r, c] != CELL_VOID:
+                cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
 
     # Gris lines
     for r in range(1, rows):
@@ -107,11 +114,6 @@ def build_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[fl
     for c in range(1, cols):
         x = c * cell_width
         cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
-
-    # Robot position
-    if robot is not None:
-        orientation, (x, y) = robot
-        cv2.rectangle(vis, (int(x), int(y)), (int(x + 20), int(y + 20)), COLOR_RED, thickness=-1)
 
     return vis
 
@@ -176,7 +178,6 @@ def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool]:
 
         # Project onto aruco
         if len(projection_points) != len(pts_src):
-            print("Not enough markers detected")
             return frame, False
         M = cv2.getPerspectiveTransform(pts_src, projection_points)
         projected = cv2.warpPerspective(frame, M, (width, height))
@@ -185,43 +186,37 @@ def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool]:
     return frame, False
 
 
-def get_robot(markers) -> tuple[float, tuple[float, float]] | None:
+def get_targets(frame: np.ndarray, markers) -> tuple[tuple[float, tuple[int, int]] | None, tuple[int, int] | None]:
     """
-    Computes the position and orientation of the robot from the video frame.
+    Computes the position and orientation of the robot and the position of the target from the video frame.
 
-    :param markers: The markers data.
-    :returns: The robot's position and orientation.
+    :param frame: The current image frame
+    :param markers: The markers' data.
+    :returns: The robot's position and orientation and the target's position.
     """
     # Extract markers data
     corners, ids, rejected = markers
 
+    robot = None
+    orientation = 0
+    end = None
+
+    # Find robot
     if ids is not None and VISION_ROBOT_MARKER in ids:
         index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
         center = np.mean(corners[index][0], axis=0)
-        orientation = 0
-        return orientation, center
+        robot = orientation, to_grid_units(frame, center)
 
-    return None
+    # Find the end target
+    if ids is not None and VISION_TARGET_MARKER in ids:
+        index = np.where(ids == VISION_TARGET_MARKER)[0][0]
+        center = np.mean(corners[index][0], axis=0)
+        end = to_grid_units(frame, center)
 
-
-def get_vision_data(cap: cv2.VideoCapture):
-    """
-    Captures the vision grid from the video capture object, computes the position of the robot and uses ARUCO markers.
-
-    :param cap: The video capture object.
-
-    :returns: The frame, grid, projected state and robot position and orientation
-    """
-    frame = get_image(cap)
-    markers = get_markers(frame)
-    frame, projected = aruko_projection(frame, markers)
-    frame, grid = get_grid(frame)
-    robot = get_robot(markers)
-
-    return frame, grid, projected, robot
+    return robot, end
 
 
-def get_image(cap: cv2.VideoCapture) -> ndarray | None:
+def get_image(cap: cv2.VideoCapture) -> np.ndarray | None:
     ret, frame = cap.read()
     if not ret:
         return None

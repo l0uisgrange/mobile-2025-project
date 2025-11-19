@@ -73,3 +73,18 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tu
     combined_frame = np.vstack((frame, bar))
 
     cv2.imshow(WINDOW_NAME, combined_frame)
+
+
+def to_grid_units(frame: np.ndarray, coordinate: tuple[float, float]) -> tuple[int, int]:
+    """
+    Converts a frame coordinate to a position in the grid
+
+    :param frame: The image frame
+    :param coordinate: The coordinate on the frame
+    :returns position: The position in the grid
+    """
+    h, w = frame.shape[:2]
+    x, y = coordinate
+    cell_height = h // GRID_SHAPE[0]
+    cell_width = w // GRID_SHAPE[1]
+    return tuple((int(y // cell_height), int(x // cell_width)))
