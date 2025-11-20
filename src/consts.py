@@ -3,9 +3,9 @@
 # —————————————————————————————————————————————————
 
 WINDOW_NAME = "mobile"
+WINDOW_WIDTH = 1000
+WINDOW_HEIGHT = 600
 CAMERA_FPS = 30
-CAMERA_WIDTH = 640 * 2
-CAMERA_HEIGHT = 480 * 2
 
 # —————————————————————————————————————————————————
 # Vision

@@ -1,305 +1,221 @@
 from src.utils import *
+from typing import Any
 import numpy as np
 import cv2
 
-def list_cameras() -> list[int]:
-    """
-    Lists all available cameras on the system.
 
-    :return: A list of integers
-    """
-    index = 0
-    arr = []
-    while True:
-        cap = cv2.VideoCapture(index)
-        if not cap.read()[0]:
-            break
-        else:
-            arr.append(index)
-        cap.release()
-        index += 1
-    return arr
+class Vision:
+    cap: cv2.VideoCapture
+    raw_frame: np.ndarray | None = None
+    per_frame: np.ndarray | None = None
+    markers: tuple[Any, Any, Any] | None = None
+    matrix: np.ndarray | None = None
+    robot: tuple[float, tuple[int, int]] | None = None
+    target: tuple[int, int] | None = None
 
+    def __init__(self, camera=1):
+        cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+        cv2.setWindowTitle(WINDOW_NAME, "Control Center")
+        cv2.resizeWindow(WINDOW_NAME, WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.cap = cv2.VideoCapture(camera)
+        self.cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
 
-def start_vision(index: int = 0) -> cv2.VideoCapture:
-    """
-    Starts the video capture and creates a window for a given camera index.
+    def capture(self):
+        """
+        Captures a frame from the camera.
+        """
+        ret, frame = self.cap.read()
+        self.raw_frame = frame if ret else None
 
-    :returns: The video capture object.
-    """
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-    cv2.setWindowTitle(WINDOW_NAME, "Control Center")
-    cap = cv2.VideoCapture(index)
-    return cap
+    def detect_markers(self):
+        """
+        Compute markers' position and orientation from the current frame.
+        """
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
+        parameters = cv2.aruco.DetectorParameters()
+        detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+        self.markers = detector.detectMarkers(self.raw_frame)
 
+    def aruco_projection(self):
+        """
+        Creates a projected frame using aruco markers.
+        """
+        corners, ids, rejected = self.markers
+        height, width = self.raw_frame.shape[:2]
 
-def set_targets_grid(frame: np.ndarray, robot: tuple[float, tuple[int, int]],
-                     end: tuple[int, int]) -> np.ndarray | None:
-    """
-    Reads a frame from the given video capture and returns the grid.
+        projection_points = np.float32([
+            [0, 0],
+            [width - 1, 0],
+            [width - 1, height - 1],
+            [0, height - 1]
+        ])
 
-    :param frame: Frame
+        if ids is not None and all(mid in ids.flatten() for mid in VISION_MARKERS):
+            # Compute centers, will be displayed like the following
+            # ┌───┬───┐
+            # │ 1 │ 2 │
+            # ├───┼───┤
+            # │ 4 │ 3 │
+            # └───┴───┘
+            markers_centers = [[float, float]] * len(VISION_MARKERS)
+            for id, i in enumerate(VISION_MARKERS):
+                c = corners[i][0]  # TODO: fix wrong index
+                center_x = np.mean(c[:, 0])
+                center_y = np.mean(c[:, 1])
+                markers_centers.append([center_x, center_y])
 
-    :returns: Scene frame, grid and frame_tresh with obstacles and targets
-    """
-
-    # Filtering
-    frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    frame_filtered = cv2.bilateralFilter(frame_gray,
-                                         VISION_FILTER_DIAM,
-                                         VISION_FILTER_SIGMA_COLOR,
-                                         VISION_FILTER_SIGMA_SPACE)
-
-    # Treshhold
-    _, frame_tresh = cv2.threshold(frame_filtered, VISION_TRESH, VISION_TRESH_MAX, cv2.THRESH_BINARY_INV)
-
-    # Build grid
-    rows, cols = GRID_SHAPE
-    h, w = frame_tresh.shape
-    cell_height = h // rows
-    cell_width = w // cols
-    grid = np.zeros((rows, cols), dtype=int)
-    for r in range(rows):
-        for c in range(cols):
-            y0 = r * cell_height
-            x0 = c * cell_width
-            y1 = h if r == rows - 1 else (y0 + cell_height)
-            x1 = w if c == cols - 1 else (x0 + cell_width)
-            cell = frame_tresh[y0:y1, x0:x1]
-            grid[r, c] = CELL_OBSTACLE if np.mean(cell) > 255 / 2 else CELL_VOID
-
-    # Adds margin around obstacles
-    obstacle_mask = (grid == CELL_OBSTACLE).astype(np.uint8) * 255
-    # taille du noyau (impair) pour la dilatation
-    ksize = max(1, 2 * VISION_OBSTACLE_MARGIN + 1)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
-    dilated = cv2.dilate(obstacle_mask, kernel)
-    margin_positions = (dilated > 0) & (grid == CELL_VOID)
-    grid[margin_positions] = CELL_MARGIN
-
-    # Place robot and target
-    if robot is not None:
-        grid[robot[1][0], robot[1][1]] = CELL_ROBOT
-    if end is not None:
-        grid[end[0], end[1]] = CELL_TARGET
-
-    return grid
-
-
-def render_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[float, float]] | None) -> np.ndarray:
-    """
-    Prepares the grid and frame for visualization
-
-    :param robot: Current robot position and orientation
-    :param frame: Frame
-    :param grid: Grid data
-
-    :returns: The Numpy array grid to display
-    """
-    rows, cols = grid.shape
-    h, w = frame.shape[:2]
-    vis = np.ones_like(frame, dtype=np.uint8) * 255
-
-    cell_height = h // rows
-    cell_width = w // cols
-
-    for r in range(rows):
-        for c in range(cols):
-            y0 = r * cell_height
-            x0 = c * cell_width
-            y1 = h if r == rows - 1 else (y0 + cell_height)
-            x1 = w if c == cols - 1 else (x0 + cell_width)
-            color = COLOR_BLACK
-            if grid[r, c] == CELL_ROBOT:
-                color = COLOR_RED
-            elif grid[r, c] == CELL_MARGIN:
-                color = COLOR_GRAY
-            elif grid[r, c] == CELL_TARGET:
-                color = COLOR_GREEN
-            if grid[r, c] != CELL_VOID:
-                cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
-
-    # Gris lines
-    for r in range(1, rows):
-        y = r * cell_height
-        cv2.line(vis, (0, y), (w, y), GRID_COLOR, GRID_THICKNESS)
-    for c in range(1, cols):
-        x = c * cell_width
-        cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
-
-    return vis
-
-
-def stop_vision(cap: cv2.VideoCapture):
-    """
-    Stops the video capture for a given capture object.
-
-    :param cap: The video capture object.
-    """
-    cv2.destroyAllWindows()
-    cap.release()
-
-
-def get_markers(frame: np.ndarray):
-    """
-    Get aruko markers information from given frame.
-
-    :param frame: The frame.
-    """
-    # Detect markers using aruco OpenCV module
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    parameters = cv2.aruco.DetectorParameters()
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    corners, ids, rejected = detector.detectMarkers(frame)
-
-    return corners, ids, rejected
-
-
-def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool, np.ndarray | None]:
-    """
-    Stops the video capture for a given capture object.
-
-    :param frame: The frame.
-    """
-    # Extract markers data
-    corners, ids, rejected = markers
-
-    # Detect markers using aruco OpenCV module
-    height, width = frame.shape[:2]
-
-    # Projection
-    projection_points = np.float32([
-        [0, 0],
-        [width - 1, 0],
-        [width - 1, height - 1],
-        [0, height - 1]
-    ])
-
-    if ids is not None and len(ids) >= 4:
-        marker_centers = {}
-        # Find aruco symbol center
-        for i, marker_id in enumerate(ids.flatten()):
-            if marker_id not in VISION_MARKERS:
-                continue
-            c = corners[i][0]
-            center_x = np.mean(c[:, 0])
-            center_y = np.mean(c[:, 1])
-            marker_centers[marker_id] = [center_x, center_y]
-
-        pts_src = np.float32([marker_centers[mid] for mid in VISION_MARKERS if mid in marker_centers])
-
-        # Project onto aruco
-        if len(projection_points) != len(pts_src):
-            return frame, False, None
-        M = cv2.getPerspectiveTransform(pts_src, projection_points)
-        projected = cv2.warpPerspective(frame, M, (width, height))
-
-        # Hide markers to not set them as obstacles
-        if ids is not None and corners is not None:
-            pad = VISION_MARKERS_PADDING
-            for i in range(len(ids)):
-                # Corners
+            # Hide markers to not set them as obstacles
+            frame = self.raw_frame
+            for id, i in enumerate(VISION_MARKERS):
                 pts = corners[i][0].reshape(-1, 1, 2)
-                pts_trans = cv2.perspectiveTransform(pts, M).reshape(-1, 2)
-                # Minimal markre area
-                rect = cv2.minAreaRect(pts_trans)
+                rect = cv2.minAreaRect(pts)
                 (cx, cy), (w_box, h_box), angle = rect
-                # Padding for precision
-                w_box = max(1.0, w_box + 2 * pad)
-                h_box = max(1.0, h_box + 2 * pad)
-                # Create white rectangle
+                w_box = max(1.0, w_box + 2 * VISION_MARKERS_PADDING)
+                h_box = max(1.0, h_box + 2 * VISION_MARKERS_PADDING)
                 box = cv2.boxPoints(((cx, cy), (w_box, h_box), angle))
                 box = np.int32(np.round(box))
-                cv2.fillPoly(projected, [box], COLOR_WHITE)
+                cv2.fillPoly(frame, [box], COLOR_WHITE)
 
-        return projected, True, M
+            # Project onto aruco
+            self.matrix = cv2.getPerspectiveTransform(markers_centers, projection_points)
+            self.per_frame = cv2.warpPerspective(frame, self.matrix, (width, height))
 
-    return frame, False, None
+    def build_grid(self):
+        """
+        Builds grid from the current projected frame.
+        """
+        frame_gray = cv2.cvtColor(self.per_frame, cv2.COLOR_BGR2GRAY)
+        frame_filtered = cv2.bilateralFilter(frame_gray, VISION_FILTER_DIAM, VISION_FILTER_SIGMA_COLOR,
+                                             VISION_FILTER_SIGMA_SPACE)
+        _, frame_tresh = cv2.threshold(frame_filtered, VISION_TRESH, VISION_TRESH_MAX, cv2.THRESH_BINARY_INV)
+        rows, cols = GRID_SHAPE
+        h, w = frame_tresh.shape
+        cell_height = h // rows
+        cell_width = w // cols
 
+        grid = np.zeros((rows, cols), dtype=int)
+        for r in range(rows):
+            for c in range(cols):
+                y0 = r * cell_height
+                x0 = c * cell_width
+                y1 = h if r == rows - 1 else (y0 + cell_height)
+                x1 = w if c == cols - 1 else (x0 + cell_width)
+                cell = frame_tresh[y0:y1, x0:x1]
+                grid[r, c] = CELL_OBSTACLE if np.mean(cell) > 255 / 2 else CELL_VOID
 
-def get_targets(frame: np.ndarray, markers, matrix: np.ndarray | None) -> tuple[
-    tuple[float, tuple[int, int]] | None, tuple[int, int] | None]:
-    """
-    Computes the position and orientation of the robot and the position of the target from the video frame.
+        # Margin in obstacles
+        obstacle_mask = (grid == CELL_OBSTACLE) * 255
+        ksize = max(1, 2 * VISION_OBSTACLE_MARGIN + 1)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
+        dilated = cv2.dilate(obstacle_mask, kernel)
+        margin_positions = (dilated > 0) & (grid == CELL_VOID)
+        grid[margin_positions] = CELL_MARGIN
 
-    :param matrix: Projection matrix
-    :param frame: The current image frame
-    :param markers: The markers' data.
-    :returns: The robot's position and orientation and the target's position.
-    """
-    # Extract markers data
-    corners, ids, rejected = markers
+        # Place robot and target
+        if self.robot is not None:
+            grid[self.robot[1][0], self.robot[1][1]] = CELL_ROBOT
+        if self.target is not None:
+            grid[self.target[0], self.target[1]] = CELL_TARGET
 
-    if matrix is None:
-        return None, None
+        self.grid = grid
 
-    robot = None
-    orientation = get_marker_angle(markers, VISION_ROBOT_MARKER, matrix)
-    end = None
+    def render_grid(self):
+        """
+        Creates a 3D BGR np.ndarray grid from the current grid data.
+        """
+        rows, cols = self.grid.shape
+        h, w = self.per_frame.shape[:2]
+        vis = np.ones_like(self.per_frame, dtype=np.uint8) * 255
 
-    # Find robot
-    if ids is not None and VISION_ROBOT_MARKER in ids:
-        index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
-        center = np.mean(corners[index][0], axis=0)
-        robot = orientation, to_grid_units(frame, project_point(center, matrix))
+        cell_height = h // rows
+        cell_width = w // cols
 
-    # Find the end target
-    if ids is not None and VISION_TARGET_MARKER in ids:
-        index = np.where(ids == VISION_TARGET_MARKER)[0][0]
-        center = np.mean(corners[index][0], axis=0)
-        end = to_grid_units(frame, project_point(center, matrix))
+        for r in range(rows):
+            for c in range(cols):
+                y0 = r * cell_height
+                x0 = c * cell_width
+                y1 = h if r == rows - 1 else (y0 + cell_height)
+                x1 = w if c == cols - 1 else (x0 + cell_width)
+                color = COLOR_BLACK
+                if self.grid[r, c] == CELL_ROBOT:
+                    color = COLOR_RED
+                elif self.grid[r, c] == CELL_MARGIN:
+                    color = COLOR_GRAY
+                elif self.grid[r, c] == CELL_TARGET:
+                    color = COLOR_GREEN
+                if self.grid[r, c] != CELL_VOID:
+                    cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
 
-    return robot, end
+        # Gris lines
+        for r in range(1, rows):
+            y = r * cell_height
+            cv2.line(vis, (0, y), (w, y), GRID_COLOR, GRID_THICKNESS)
+        for c in range(1, cols):
+            x = c * cell_width
+            cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
 
+        return vis
 
-def get_image(cap: cv2.VideoCapture) -> np.ndarray | None:
-    ret, frame = cap.read()
-    if not ret:
-        return None
-    return frame
+    def find_targets(self):
+        """
+        Uses aruko markers and computes the target.
+        """
+        corners, ids, rejected = self.markers
 
+        robot = None
+        orientation = self._angle_projection(VISION_ROBOT_MARKER)
+        target = None
 
-def project_point(point: tuple[float, float], matrix: np.ndarray) -> tuple[float, float]:
-    """
-    Projects a point in the original frame to the grid
+        # Find robot
+        if ids is not None and VISION_ROBOT_MARKER in ids:
+            index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
+            center = np.mean(corners[index][0], axis=0)
+            robot = orientation, to_grid_units(self.per_frame, self._point_projection(center))
 
-    :param point: The point in the original frame
-    :param matrix: The projection matrix
-    :returns point: The coordinate on the grid plane
-    """
-    pt = np.array([[[float(point[0]), float(point[1])]]], dtype=np.float32)
-    transformed = cv2.perspectiveTransform(pt, matrix)
-    return float(transformed[0][0][0]), float(transformed[0][0][1])
+        # Find the target
+        if ids is not None and VISION_TARGET_MARKER in ids:
+            index = np.where(ids == VISION_TARGET_MARKER)[0][0]
+            center = np.mean(corners[index][0], axis=0)
+            target = to_grid_units(self.per_frame, self._point_projection(center))
 
+        self.robot = robot
+        self.target = target
 
-def get_marker_angle(markers, marker_id: int, matrix: np.ndarray | None = None) -> float | None:
-    """
-    Retourne l'angle (en degrés, dans [0,360)) du marker `marker_id`.
-    Si `matrix` est fournie, les coins sont projetés avant le calcul de l'angle.
-    """
-    corners, ids, _ = markers
-    if ids is None:
-        return None
-    flat_ids = ids.flatten()
-    matches = np.where(flat_ids == marker_id)[0]
-    if matches.size == 0:
-        return None
-    idx = matches[0]
-    pts = corners[idx][0].astype(np.float32)  # shape (4,2)
+    def release(self):
+        """
+        Destroys windows and releases the capture object.
+        """
+        cv2.destroyAllWindows()
+        self.cap.release()
 
-    if matrix is not None:
-        pts = cv2.perspectiveTransform(pts.reshape(-1, 1, 2), matrix).reshape(-1, 2)
+    def _point_projection(self, point: tuple[float, float]):
+        """
+        Projects a point using the aruco matrix.
+        """
+        return cv2.perspectiveTransform(point, self.matrix)
 
-    # Utilise minAreaRect pour avoir le rectangle orienté, puis normalise l'angle
-    rect = cv2.minAreaRect(pts)  # ((cx,cy),(w,h),angle)
-    angle = float(rect[2])
-    w_rect, h_rect = rect[1]
-    # Ajustement pour la convention d'OpenCV (angle dans [-90,0))
-    if w_rect < h_rect:
-        angle += 90.0
-    angle = (angle + 360.0) % 360.0
-    return angle
+    def _angle_projection(self, id: int):
+        """
+        Projects a marker angle.
+        """
+        corners, ids, _ = self.markers
+        if ids is None:
+            return None
+        flat_ids = ids.flatten()
+        matches = np.where(flat_ids == id)[0]
+        if matches.size == 0:
+            return None
+        idx = matches[0]
+        pts = corners[idx][0].astype(np.float32)
+        pts = cv2.perspectiveTransform(pts.reshape(-1, 1, 2), self.matrix).reshape(-1, 2)
 
+        # Use cv2 to get the marker angle
+        _, _, angle = cv2.minAreaRect(pts)
+        angle = (angle + 360.0) % 360.0
+        return angle
 
-if __name__ == "__main__":
-    print('Cameras found', list_cameras())
+    def get_frame(self):
+        return self.per_frame
+
+    def get_grid(self):
+        return self.grid
