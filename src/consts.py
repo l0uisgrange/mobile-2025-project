@@ -3,23 +3,31 @@
 # —————————————————————————————————————————————————
 
 WINDOW_NAME = "mobile"
+CAMERA_FPS = 30
+CAMERA_WIDTH = 640 * 2
+CAMERA_HEIGHT = 480 * 2
 
 # —————————————————————————————————————————————————
 # Vision
 # —————————————————————————————————————————————————
 
+# Filtering
 VISION_TRESH = 100
 VISION_TRESH_MAX = 255
 VISION_FILTER_DIAM = 9
 VISION_FILTER_SIGMA_COLOR = 100
 VISION_FILTER_SIGMA_SPACE = 9
+# Markers
 VISION_MARKERS = [1, 2, 3, 4]
+VISION_MARKERS_PADDING = 2
 VISION_ROBOT_MARKER = 5
 VISION_TARGET_MARKER = 6
-
+# Obstacles
+VISION_OBSTACLE_MARGIN = 5
+# Aruco
 ARUCO_WIDTH = 1000
 ARUCO_HEIGHT = 800
-
+# Status bar
 STATUS_BAR_HEIGHT = 160
 STATUS_INDICATOR_SIZE = 30
 STATUS_BAR_SPACING = (800, 50)
@@ -59,7 +67,7 @@ COLOR_GREEN = (0, 255, 0)
 CELL_VOID = 0
 CELL_OBSTACLE = 1
 CELL_ROBOT = 2
-CELL_UPSCALE = 3
+CELL_MARGIN = 3
 CELL_TARGET = 4
 
 X = 0

@@ -8,7 +8,7 @@ nav = Navigation()
 # Main loop
 while True:
     # Stop command
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(2) & 0xFF == ord('q'):
         print("Exiting with command 'q'")
         break
 
@@ -59,9 +59,12 @@ while True:
 
     vis = render_grid(proj_frame, grid, robot)
     combined_bottom = np.hstack((proj_frame, vis))
-    combined_top = np.hstack((frame, vis))
-    combined = np.vstack((combined_top, combined_bottom))
-    draw_control_room(combined, projected, robot, end)
+    #combined_top = np.hstack((frame, vis))
+    #combined = np.vstack((combined_top, combined_bottom))
+    alpha = 0.5
+    blended = cv2.addWeighted(proj_frame, alpha,
+                              vis.astype(np.uint8), 1.0 - alpha, 0)
+    draw_control_room(blended, projected, robot, end)
 
 # Stop
 stop_vision(cap)

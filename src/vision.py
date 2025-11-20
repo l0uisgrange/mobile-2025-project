@@ -68,6 +68,16 @@ def set_targets_grid(frame: np.ndarray, robot: tuple[float, tuple[int, int]],
             cell = frame_tresh[y0:y1, x0:x1]
             grid[r, c] = CELL_OBSTACLE if np.mean(cell) > 255 / 2 else CELL_VOID
 
+    # Adds margin around obstacles
+    obstacle_mask = (grid == CELL_OBSTACLE).astype(np.uint8) * 255
+    # taille du noyau (impair) pour la dilatation
+    ksize = max(1, 2 * VISION_OBSTACLE_MARGIN + 1)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
+    dilated = cv2.dilate(obstacle_mask, kernel)
+    margin_positions = (dilated > 0) & (grid == CELL_VOID)
+    grid[margin_positions] = CELL_MARGIN
+
+    # Place robot and target
     if robot is not None:
         grid[robot[1][0], robot[1][1]] = CELL_ROBOT
     if end is not None:
@@ -102,7 +112,7 @@ def render_grid(frame: np.ndarray, grid: np.ndarray, robot: tuple[float, tuple[f
             color = COLOR_BLACK
             if grid[r, c] == CELL_ROBOT:
                 color = COLOR_RED
-            elif grid[r, c] == CELL_UPSCALE:
+            elif grid[r, c] == CELL_MARGIN:
                 color = COLOR_GRAY
             elif grid[r, c] == CELL_TARGET:
                 color = COLOR_GREEN
@@ -183,6 +193,25 @@ def aruko_projection(frame: np.ndarray, markers) -> tuple[np.ndarray, bool, np.n
             return frame, False, None
         M = cv2.getPerspectiveTransform(pts_src, projection_points)
         projected = cv2.warpPerspective(frame, M, (width, height))
+
+        # Hide markers to not set them as obstacles
+        if ids is not None and corners is not None:
+            pad = VISION_MARKERS_PADDING
+            for i in range(len(ids)):
+                # Corners
+                pts = corners[i][0].reshape(-1, 1, 2)
+                pts_trans = cv2.perspectiveTransform(pts, M).reshape(-1, 2)
+                # Minimal markre area
+                rect = cv2.minAreaRect(pts_trans)
+                (cx, cy), (w_box, h_box), angle = rect
+                # Padding for precision
+                w_box = max(1.0, w_box + 2 * pad)
+                h_box = max(1.0, h_box + 2 * pad)
+                # Create white rectangle
+                box = cv2.boxPoints(((cx, cy), (w_box, h_box), angle))
+                box = np.int32(np.round(box))
+                cv2.fillPoly(projected, [box], COLOR_WHITE)
+
         return projected, True, M
 
     return frame, False, None
@@ -205,7 +234,7 @@ def get_targets(frame: np.ndarray, markers, matrix: np.ndarray | None) -> tuple[
         return None, None
 
     robot = None
-    orientation = 0
+    orientation = get_marker_angle(markers, VISION_ROBOT_MARKER, matrix)
     end = None
 
     # Find robot
@@ -241,6 +270,35 @@ def project_point(point: tuple[float, float], matrix: np.ndarray) -> tuple[float
     pt = np.array([[[float(point[0]), float(point[1])]]], dtype=np.float32)
     transformed = cv2.perspectiveTransform(pt, matrix)
     return float(transformed[0][0][0]), float(transformed[0][0][1])
+
+
+def get_marker_angle(markers, marker_id: int, matrix: np.ndarray | None = None) -> float | None:
+    """
+    Retourne l'angle (en degrés, dans [0,360)) du marker `marker_id`.
+    Si `matrix` est fournie, les coins sont projetés avant le calcul de l'angle.
+    """
+    corners, ids, _ = markers
+    if ids is None:
+        return None
+    flat_ids = ids.flatten()
+    matches = np.where(flat_ids == marker_id)[0]
+    if matches.size == 0:
+        return None
+    idx = matches[0]
+    pts = corners[idx][0].astype(np.float32)  # shape (4,2)
+
+    if matrix is not None:
+        pts = cv2.perspectiveTransform(pts.reshape(-1, 1, 2), matrix).reshape(-1, 2)
+
+    # Utilise minAreaRect pour avoir le rectangle orienté, puis normalise l'angle
+    rect = cv2.minAreaRect(pts)  # ((cx,cy),(w,h),angle)
+    angle = float(rect[2])
+    w_rect, h_rect = rect[1]
+    # Ajustement pour la convention d'OpenCV (angle dans [-90,0))
+    if w_rect < h_rect:
+        angle += 90.0
+    angle = (angle + 360.0) % 360.0
+    return angle
 
 
 if __name__ == "__main__":
