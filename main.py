@@ -1,9 +1,14 @@
+from time import sleep
+
 from src.navigation import Navigation
 from src.vision import *
 
 # Initialization
 vis = Vision()
 nav = Navigation()
+
+# Wait a second for camera connection time
+sleep(1)
 
 # Main loop
 while True:
@@ -16,15 +21,7 @@ while True:
     # VISION (src.vision)
     # ——————————————————————————————————————————————
 
-    vis.capture()
-    vis.detect_markers()
-    vis.aruco_projection()
-
-
-    # Get targets' position and orientation
-    vis.find_targets()
-    # Create the grid with targets
-    vis.build_grid()
+    vis.step()
 
     # ——————————————————————————————————————————————
     # LOCAL OBSTACLE AVOIDANCE (src.local)
@@ -37,7 +34,7 @@ while True:
     # ——————————————————————————————————————————————
 
     # Path finding
-    #if robot is not None and end is not None:
+    # if robot is not None and end is not None:
     #    nav.path = nav.a_star(robot[1], end)
     #    if nav.path is not None:
     #        nav.plan = nav.generate_plan(robot[1], end)
@@ -54,14 +51,9 @@ while True:
     # VISUALIZATION
     # ——————————————————————————————————————————————
 
-    vis = vis.render_grid()
-    combined_bottom = np.hstack((vis.per_frame, vis))
-    #combined_top = np.hstack((frame, vis))
-    #combined = np.vstack((combined_top, combined_bottom))
-    alpha = 0.5
-    blended = cv2.addWeighted(vis.per_frame, alpha,
-                              vis.astype(np.uint8), 1.0 - alpha, 0)
-    draw_control_room(blended, True, vis.robot, vis.end)
+    view = vis.render_grid()
+    blended = cv2.addWeighted(vis.get_frame(), GRID_OPACITY, view.astype(np.uint8), 1.0 - GRID_OPACITY, 0)
+    draw_control_room(blended, vis.get_trust(), vis.robot, vis.target)
 
 # Stop
 vis.release()

@@ -4,15 +4,10 @@ import numpy as np
 from src.consts import *
 
 
-def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tuple[int, int]] | None,
+def draw_control_room(frame: np.ndarray, trust: bool, robot: tuple[float, tuple[int, int]] | None,
                       end: tuple[int, int] | None):
     """
     Shows the grid inside a new window
-
-    :param end: Target position
-    :param projected: Projection state
-    :param robot: Robot data
-    :param frame: The raw image frame
     """
     # Ensure frame is 3D (BGR)
     if frame.ndim == 2:
@@ -57,7 +52,7 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tu
                 STATUS_BAR_FONTTHICKNESS,
             )
 
-    show_status("MARKERS", (0, 0), projected)
+    show_status("TRUST", (0, 0), trust)
     show_status("ROBOT", (0, 1), robot is not None,
                 gray_text='(' + str(robot[1][0]) + ', ' + str(robot[1][1]) + ') AT ' + str(
                     int(robot[0])) + ' DEGREES' if robot else None)
@@ -73,10 +68,6 @@ def draw_control_room(frame: np.ndarray, projected: bool, robot: tuple[float, tu
 def to_grid_units(frame: np.ndarray, coordinate: tuple[float, float]) -> tuple[int, int]:
     """
     Converts a frame coordinate to a position in the grid
-
-    :param frame: The image frame
-    :param coordinate: The coordinate on the frame
-    :returns position: The position in the grid
     """
     h, w = frame.shape[:2]
     x, y = coordinate

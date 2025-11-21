@@ -3,8 +3,8 @@
 # —————————————————————————————————————————————————
 
 WINDOW_NAME = "mobile"
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 600
+WINDOW_WIDTH = 774
+WINDOW_HEIGHT = 500
 CAMERA_FPS = 30
 
 # —————————————————————————————————————————————————
@@ -24,6 +24,7 @@ VISION_ROBOT_MARKER = 5
 VISION_TARGET_MARKER = 6
 # Obstacles
 VISION_OBSTACLE_MARGIN = 5
+VISION_MAX_GRID_AGE = 10
 # Aruco
 ARUCO_WIDTH = 1000
 ARUCO_HEIGHT = 800
@@ -39,6 +40,7 @@ STATUS_BAR_FONTTHICKNESS = 2
 # Styling
 # —————————————————————————————————————————————————
 
+GRID_OPACITY = 0.5
 GRID_RESOLUTION = 71
 GRID_SHAPE = (GRID_RESOLUTION, int(GRID_RESOLUTION * 1.5))
 GRID_COLOR = (230, 230, 230)

@@ -6,6 +6,8 @@ import cv2
 
 class Vision:
     cap: cv2.VideoCapture
+    grid: np.ndarray | None = None
+    trust: bool = False
     raw_frame: np.ndarray | None = None
     per_frame: np.ndarray | None = None
     markers: tuple[Any, Any, Any] | None = None
@@ -13,12 +15,43 @@ class Vision:
     robot: tuple[float, tuple[int, int]] | None = None
     target: tuple[int, int] | None = None
 
-    def __init__(self, camera=1):
+    def __init__(self, camera=0):
         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
         cv2.setWindowTitle(WINDOW_NAME, "Control Center")
-        cv2.resizeWindow(WINDOW_NAME, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.cap = cv2.VideoCapture(camera)
         self.cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
+        cv2.resizeWindow(WINDOW_NAME, WINDOW_WIDTH, WINDOW_HEIGHT)
+
+    def step(self):
+        """
+        Increments the grid age counter.
+        """
+        # Resize window to ensure correct sizing
+        cv2.resizeWindow(WINDOW_NAME, WINDOW_WIDTH, WINDOW_HEIGHT)
+
+        # 1. Capture frame
+        self.capture()
+        if self.raw_frame is None:
+            self.trust = False
+            return
+        # 2. Detect aruco markers
+        self.detect_markers()
+        if self.markers is None or self.markers[1] is None or not all(
+                mid in self.markers[1].flatten() for mid in VISION_MARKERS):
+            self.trust = False
+            return
+        self.aruco_projection()
+        if self.matrix is None:
+            self.trust = False
+            return
+        # 3. Find targets
+        self.find_targets()
+        if self.target is None or self.robot is None:
+            self.trust = False
+            return
+        # 4. Build final grid
+        self.build_grid()
+        self.trust = True
 
     def capture(self):
         """
@@ -39,9 +72,20 @@ class Vision:
     def aruco_projection(self):
         """
         Creates a projected frame using aruco markers.
+        ┌───┬───┐
+        │ 1 │ 2 │
+        ├───┼───┤ The frame visible on the screen.
+        │ 3 │ 4 │
+        └───┴───┘
         """
         corners, ids, rejected = self.markers
         height, width = self.raw_frame.shape[:2]
+
+        if ids is None:
+            self.per_frame = self.raw_frame
+            return
+
+        indices = {marker_id[0]: i for i, marker_id in enumerate(ids)}
 
         projection_points = np.float32([
             [0, 0],
@@ -50,35 +94,32 @@ class Vision:
             [0, height - 1]
         ])
 
-        if ids is not None and all(mid in ids.flatten() for mid in VISION_MARKERS):
-            # Compute centers, will be displayed like the following
-            # ┌───┬───┐
-            # │ 1 │ 2 │
-            # ├───┼───┤
-            # │ 4 │ 3 │
-            # └───┴───┘
-            markers_centers = [[float, float]] * len(VISION_MARKERS)
-            for id, i in enumerate(VISION_MARKERS):
-                c = corners[i][0]  # TODO: fix wrong index
-                center_x = np.mean(c[:, 0])
-                center_y = np.mean(c[:, 1])
-                markers_centers.append([center_x, center_y])
+        markers_centers = []
+        for marker_id in VISION_MARKERS:
+            index = indices[marker_id]
+            c = corners[index][0]
+            center_x = np.mean(c[:, 0])
+            center_y = np.mean(c[:, 1])
+            markers_centers.append([center_x, center_y])
 
-            # Hide markers to not set them as obstacles
-            frame = self.raw_frame
-            for id, i in enumerate(VISION_MARKERS):
-                pts = corners[i][0].reshape(-1, 1, 2)
-                rect = cv2.minAreaRect(pts)
-                (cx, cy), (w_box, h_box), angle = rect
-                w_box = max(1.0, w_box + 2 * VISION_MARKERS_PADDING)
-                h_box = max(1.0, h_box + 2 * VISION_MARKERS_PADDING)
-                box = cv2.boxPoints(((cx, cy), (w_box, h_box), angle))
-                box = np.int32(np.round(box))
-                cv2.fillPoly(frame, [box], COLOR_WHITE)
+        markers_centers = np.float32(markers_centers)
 
-            # Project onto aruco
-            self.matrix = cv2.getPerspectiveTransform(markers_centers, projection_points)
-            self.per_frame = cv2.warpPerspective(frame, self.matrix, (width, height))
+        # Hide markers to not set them as obstacles
+        frame = self.raw_frame
+        for marker_id in VISION_MARKERS:
+            index = indices[marker_id]
+            pts = corners[index][0].reshape(-1, 1, 2)
+            rect = cv2.minAreaRect(pts)
+            (cx, cy), (w_box, h_box), angle = rect
+            w_box = max(1.0, w_box + 2 * VISION_MARKERS_PADDING)
+            h_box = max(1.0, h_box + 2 * VISION_MARKERS_PADDING)
+            box = cv2.boxPoints(((cx, cy), (w_box, h_box), angle))
+            box = np.int32(np.round(box))
+            cv2.fillPoly(frame, [box], COLOR_WHITE)
+
+        # Project onto aruco
+        self.matrix = cv2.getPerspectiveTransform(markers_centers, projection_points)
+        self.per_frame = cv2.warpPerspective(frame, self.matrix, (width, height))
 
     def build_grid(self):
         """
@@ -104,7 +145,7 @@ class Vision:
                 grid[r, c] = CELL_OBSTACLE if np.mean(cell) > 255 / 2 else CELL_VOID
 
         # Margin in obstacles
-        obstacle_mask = (grid == CELL_OBSTACLE) * 255
+        obstacle_mask = (grid == CELL_OBSTACLE).astype(np.uint8) * 255
         ksize = max(1, 2 * VISION_OBSTACLE_MARGIN + 1)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
         dilated = cv2.dilate(obstacle_mask, kernel)
@@ -123,9 +164,13 @@ class Vision:
         """
         Creates a 3D BGR np.ndarray grid from the current grid data.
         """
-        rows, cols = self.grid.shape
+        if not self.trust:
+            return np.ones_like(self.raw_frame, dtype=np.uint8) * 255
+
         h, w = self.per_frame.shape[:2]
         vis = np.ones_like(self.per_frame, dtype=np.uint8) * 255
+
+        rows, cols = GRID_SHAPE
 
         cell_height = h // rows
         cell_width = w // cols
@@ -163,18 +208,26 @@ class Vision:
         corners, ids, rejected = self.markers
 
         robot = None
-        orientation = self._angle_projection(VISION_ROBOT_MARKER)
+        orientation = None
         target = None
 
+        if ids is None or corners is None:
+            self.robot = robot
+            self.target = target
+            return
+
+        flat_ids = ids.flatten()
+
         # Find robot
-        if ids is not None and VISION_ROBOT_MARKER in ids:
-            index = np.where(ids == VISION_ROBOT_MARKER)[0][0]
+        if VISION_ROBOT_MARKER in flat_ids:
+            index = np.where(flat_ids == VISION_ROBOT_MARKER)[0][0]
             center = np.mean(corners[index][0], axis=0)
+            orientation = self._angle_projection(VISION_ROBOT_MARKER)
             robot = orientation, to_grid_units(self.per_frame, self._point_projection(center))
 
         # Find the target
-        if ids is not None and VISION_TARGET_MARKER in ids:
-            index = np.where(ids == VISION_TARGET_MARKER)[0][0]
+        if VISION_TARGET_MARKER in flat_ids:
+            index = np.where(flat_ids == VISION_TARGET_MARKER)[0][0]
             center = np.mean(corners[index][0], axis=0)
             target = to_grid_units(self.per_frame, self._point_projection(center))
 
@@ -188,11 +241,12 @@ class Vision:
         cv2.destroyAllWindows()
         self.cap.release()
 
-    def _point_projection(self, point: tuple[float, float]):
+    def _point_projection(self, point: tuple[float, float] | Any):
         """
         Projects a point using the aruco matrix.
         """
-        return cv2.perspectiveTransform(point, self.matrix)
+        re_point = point.astype(np.float32).reshape(1, 1, 2)
+        return cv2.perspectiveTransform(re_point, self.matrix)[0][0]
 
     def _angle_projection(self, id: int):
         """
@@ -215,7 +269,22 @@ class Vision:
         return angle
 
     def get_frame(self):
-        return self.per_frame
+        """
+        Simple frame getter.
+        """
+        if self.trust:
+            return self.per_frame
+        else:
+            return self.raw_frame
 
     def get_grid(self):
+        """
+        Simple grid getter.
+        """
         return self.grid
+
+    def get_trust(self):
+        """
+        An external used method to check if the data provided by vision are trustworthy.
+        """
+        return self.trust
