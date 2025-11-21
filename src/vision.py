@@ -183,14 +183,14 @@ class Vision:
                 y1 = h if r == rows - 1 else (y0 + cell_height)
                 x1 = w if c == cols - 1 else (x0 + cell_width)
                 color = COLOR_BLACK
-                if (r, c) in path_set:
-                    color = COLOR_LIGHTRED
-                elif (r, c) in plan_set:
+                if self.grid[r, c] == CELL_MARGIN:
+                    color = COLOR_GRAY
+                if (r, c) in plan_set:
                     color = COLOR_BLUE
+                elif (r, c) in path_set:
+                    color = COLOR_LIGHTRED
                 if self.grid[r, c] == CELL_ROBOT:
                     color = COLOR_RED
-                elif self.grid[r, c] == CELL_MARGIN:
-                    color = COLOR_GRAY
                 elif self.grid[r, c] == CELL_TARGET:
                     color = COLOR_GREEN
                 if self.grid[r, c] != CELL_VOID or (r, c) in path_set or (r, c) in plan_set:

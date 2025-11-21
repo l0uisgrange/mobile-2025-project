@@ -61,8 +61,8 @@ COLOR_BLACK = (0, 0, 0)
 COLOR_WHITE = (255, 255, 255)
 COLOR_GRAY = (150, 150, 150)
 COLOR_RED = (0, 0, 255)
-COLOR_LIGHTRED = (255, 150, 150)
-COLOR_BLUE = (0, 0, 255)
+COLOR_LIGHTRED = (150, 150, 255)
+COLOR_BLUE = (255, 0, 0)
 COLOR_GREEN = (0, 255, 0)
 
 # —————————————————————————————————————————————————
