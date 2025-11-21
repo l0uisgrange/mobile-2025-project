@@ -81,10 +81,6 @@ class Vision:
         corners, ids, rejected = self.markers
         height, width = self.raw_frame.shape[:2]
 
-        if ids is None:
-            self.per_frame = self.raw_frame
-            return
-
         indices = {marker_id[0]: i for i, marker_id in enumerate(ids)}
 
         projection_points = np.float32([
@@ -106,7 +102,9 @@ class Vision:
 
         # Hide markers to not set them as obstacles
         frame = self.raw_frame
-        for marker_id in VISION_MARKERS:
+        for marker_id in VISION_ALL_MARKERS:
+            if marker_id not in indices:
+                continue
             index = indices[marker_id]
             pts = corners[index][0].reshape(-1, 1, 2)
             rect = cv2.minAreaRect(pts)
