@@ -54,7 +54,7 @@ while True:
     # ——————————————————————————————————————————————
 
     view = vis.render_grid(path, plan)
-    blended = cv2.addWeighted(vis.get_frame(), GRID_OPACITY, view.astype(np.uint8), 1.0 - GRID_OPACITY, 0)
+    blended = cv2.addWeighted(vis.get_frame(), FRAME_OPACITY, view.astype(np.uint8), GRID_OPACITY, 0)
     draw_control_room(blended, vis.get_trust(), vis.robot, vis.target)
 
 # Stop
