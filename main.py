@@ -10,6 +10,10 @@ nav = Navigation()
 # Wait a second for camera connection time
 sleep(1)
 
+# TODO remove when getter inside navigation is ready
+path = []
+plan = []
+
 # Main loop
 while True:
     # Stop command
@@ -34,12 +38,10 @@ while True:
     # ——————————————————————————————————————————————
 
     # Path finding
-    # if robot is not None and end is not None:
-    #    nav.path = nav.a_star(robot[1], end)
-    #    if nav.path is not None:
-    #        nav.plan = nav.generate_plan(robot[1], end)
-    # Populate the grid with path and plan
-    # frame, grid = set_path_grid(grid, nav.path, nav.plan)
+    if vis.get_trust():
+        path = nav.a_star(vis.robot[1], vis.target)
+        if path is not None:
+            plan = nav.generate_plan(vis.robot[1], vis.target)
 
     # ——————————————————————————————————————————————
     # MOTION (src.motion)
@@ -51,7 +53,7 @@ while True:
     # VISUALIZATION
     # ——————————————————————————————————————————————
 
-    view = vis.render_grid()
+    view = vis.render_grid(path, plan)
     blended = cv2.addWeighted(vis.get_frame(), GRID_OPACITY, view.astype(np.uint8), 1.0 - GRID_OPACITY, 0)
     draw_control_room(blended, vis.get_trust(), vis.robot, vis.target)
 

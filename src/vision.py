@@ -158,7 +158,7 @@ class Vision:
 
         self.grid = grid
 
-    def render_grid(self):
+    def render_grid(self, path, plan):
         """
         Creates a 3D BGR np.ndarray grid from the current grid data.
         """
@@ -173,6 +173,9 @@ class Vision:
         cell_height = h // rows
         cell_width = w // cols
 
+        path_set = set(path) if path is not None else set()
+        plan_set = set(plan) if plan is not None else set()
+
         for r in range(rows):
             for c in range(cols):
                 y0 = r * cell_height
@@ -180,13 +183,17 @@ class Vision:
                 y1 = h if r == rows - 1 else (y0 + cell_height)
                 x1 = w if c == cols - 1 else (x0 + cell_width)
                 color = COLOR_BLACK
+                if (r, c) in path_set:
+                    color = COLOR_LIGHTRED
+                elif (r, c) in plan_set:
+                    color = COLOR_BLUE
                 if self.grid[r, c] == CELL_ROBOT:
                     color = COLOR_RED
                 elif self.grid[r, c] == CELL_MARGIN:
                     color = COLOR_GRAY
                 elif self.grid[r, c] == CELL_TARGET:
                     color = COLOR_GREEN
-                if self.grid[r, c] != CELL_VOID:
+                if self.grid[r, c] != CELL_VOID or (r, c) in path_set or (r, c) in plan_set:
                     cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
 
         # Gris lines
