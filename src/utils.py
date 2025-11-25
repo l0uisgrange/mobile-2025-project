@@ -58,6 +58,7 @@ def draw_control_room(vis, frame: np.ndarray):
     show_status("TARGET", (1, 0), vis.target is not None,
                 gray_text='(' + str(vis.target[0]) + ', ' + str(vis.target[1]) + ')' if vis.target else None)
     show_status("PATH", (1, 1), False)
+    show_status("LOCK", (2, 0), vis.lock)
 
     combined_frame = np.vstack((frame, bar))
 

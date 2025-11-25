@@ -21,6 +21,10 @@ while True:
     # Exit main loop
     if key == ord('q'):
         break
+    if key == ord('1'):
+        vis.set_lock(True)
+    elif key == ord('2'):
+        vis.set_lock(False)
 
     # ——————————————————————————————————————————————
     # VISION (src.vision)
@@ -55,6 +59,8 @@ while True:
     # ——————————————————————————————————————————————
 
     view = vis.render_grid(path, plan)
+    if view is None:
+        continue
     blended = cv2.addWeighted(vis.get_frame(), FRAME_OPACITY, view.astype(np.uint8), GRID_OPACITY, 0)
     draw_control_room(vis, blended)
 
