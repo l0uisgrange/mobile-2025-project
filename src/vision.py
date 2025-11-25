@@ -75,7 +75,7 @@ class Vision:
         ┌───┬───┐
         │ 1 │ 2 │
         ├───┼───┤ The frame visible on the screen.
-        │ 3 │ 4 │
+        │ 4 │ 3 │
         └───┴───┘
         """
         corners, ids, rejected = self.markers
@@ -151,6 +151,10 @@ class Vision:
         grid[margin_positions] = CELL_MARGIN
 
         # Place robot and target
+        if abs(self.robot[1][0]) > GRID_SHAPE[0] or abs(self.robot[1][1]) > GRID_SHAPE[1]:
+            self.robot = None
+        if abs(self.target[0]) > GRID_SHAPE[0] or abs(self.target[1]) > GRID_SHAPE[1]:
+            self.target = None
         if self.robot is not None:
             grid[self.robot[1][0], self.robot[1][1]] = CELL_ROBOT
         if self.target is not None:
@@ -213,7 +217,6 @@ class Vision:
         corners, ids, rejected = self.markers
 
         robot = None
-        orientation = None
         target = None
 
         if ids is None or corners is None:
@@ -292,4 +295,4 @@ class Vision:
         """
         An external used method to check if the data provided by vision are trustworthy.
         """
-        return self.trust
+        return self.robot is not None and self.target is not None and self.trust

@@ -8,7 +8,7 @@ vis = Vision()
 nav = Navigation()
 
 # Wait a second for camera connection time
-sleep(1)
+sleep(1.5)
 
 # TODO remove when getter inside navigation is ready
 path = []
@@ -17,8 +17,9 @@ plan = []
 # Main loop
 while True:
     # Stop command
-    if cv2.waitKey(2) & 0xFF == ord('q'):
-        print("Exiting with command 'q'")
+    key = cv2.waitKey(2) & 0xFF
+    # Exit main loop
+    if key == ord('q'):
         break
 
     # ——————————————————————————————————————————————
@@ -55,7 +56,7 @@ while True:
 
     view = vis.render_grid(path, plan)
     blended = cv2.addWeighted(vis.get_frame(), FRAME_OPACITY, view.astype(np.uint8), GRID_OPACITY, 0)
-    draw_control_room(blended, vis.get_trust(), vis.robot, vis.target)
+    draw_control_room(vis, blended)
 
 # Stop
 vis.release()
