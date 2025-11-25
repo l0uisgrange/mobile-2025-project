@@ -37,12 +37,11 @@ class Vision:
             return
         # 2. Detect aruco markers
         self.detect_markers()
-        if self.markers is None or self.markers[1] is None or not all(
-                mid in self.markers[1].flatten() for mid in VISION_MARKERS):
+        if not self.lock and (self.markers is None or self.markers[1] is None or not all(
+                mid in self.markers[1].flatten() for mid in VISION_MARKERS)):
             self.trust = False
             return
         self.aruco_projection()
-        self.build_matrix()
         if self.matrix is None:
             self.trust = False
             return
@@ -82,9 +81,9 @@ class Vision:
         └───┴───┘
         """
         height, width = self.raw_frame.shape[:2]
+        frame = self._hide_markers(VISION_ALL_MARKERS)
 
         if self.lock:
-            frame = self._hide_markers(VISION_MARKERS)
             self.per_frame = cv2.warpPerspective(frame, self.matrix, (width, height))
             return
 
@@ -107,8 +106,6 @@ class Vision:
             markers_centers.append([center_x, center_y])
 
         markers_centers = np.float32(markers_centers)
-
-        frame = self._hide_markers(self.markers)
 
         # Project onto aruco
         self.matrix = cv2.getPerspectiveTransform(markers_centers, projection_points)
@@ -146,7 +143,6 @@ class Vision:
         grid[margin_positions] = CELL_MARGIN
 
         self.grid = grid
-
 
     def _hide_markers(self, markers):
         """
@@ -187,7 +183,7 @@ class Vision:
         path_set = set(path) if path is not None else set()
         plan_set = set(plan) if plan is not None else set()
 
-        grid = self.grid
+        grid = self.grid.copy()
 
         # Add robot and target
         if self.robot is not None:
