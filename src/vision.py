@@ -1,7 +1,10 @@
-from src.utils import *
+import copy
 from typing import Any
-import numpy as np
+
 import cv2
+import numpy as np
+
+from src.utils import *
 
 
 class Vision:
@@ -183,7 +186,7 @@ class Vision:
         path_set = set(path) if path is not None else set()
         plan_set = set(plan) if plan is not None else set()
 
-        grid = self.grid.copy()
+        grid = copy.deepcopy(self.grid)
 
         # Add robot and target
         if self.robot is not None:
