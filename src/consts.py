@@ -78,4 +78,16 @@ CELL_TARGET = 4
 
 X = 0
 Y = 1
+THETA = 2
+
 WEIGHT = 1
+
+# —————————————————————————————————————————————————
+# Motion
+# —————————————————————————————————————————————————
+
+DISTANCE_TOLERANCE = 2.0 #in grid units
+ANGLE_TOLERANCE = 0.5
+ROTATION_SPEED = 100
+K_ERROR_ANGLE = 200
+DT = 0.1
