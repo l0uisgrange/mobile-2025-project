@@ -4,8 +4,7 @@ import numpy as np
 from src.consts import *
 
 
-def draw_control_room(frame: np.ndarray, trust: bool, robot: tuple[float, tuple[int, int]] | None,
-                      end: tuple[int, int] | None):
+def draw_control_room(vis, frame: np.ndarray):
     """
     Shows the grid inside a new window
     """
@@ -52,12 +51,12 @@ def draw_control_room(frame: np.ndarray, trust: bool, robot: tuple[float, tuple[
                 STATUS_BAR_FONTTHICKNESS,
             )
 
-    show_status("TRUST", (0, 0), trust)
-    show_status("ROBOT", (0, 1), robot is not None,
-                gray_text='(' + str(robot[1][0]) + ', ' + str(robot[1][1]) + ') AT ' + str(
-                    int(robot[0])) + ' DEGREES' if robot else None)
-    show_status("TARGET", (1, 0), end is not None,
-                gray_text='(' + str(end[0]) + ', ' + str(end[1]) + ')' if end else None)
+    show_status("TRUST", (0, 0), vis.trust)
+    show_status("ROBOT", (0, 1), vis.robot is not None,
+                gray_text='(' + str(vis.robot[1][0]) + ', ' + str(vis.robot[1][1]) + ') AT ' + str(
+                    int(vis.robot[0])) + ' DEGREES' if vis.robot else None)
+    show_status("TARGET", (1, 0), vis.target is not None,
+                gray_text='(' + str(vis.target[0]) + ', ' + str(vis.target[1]) + ')' if vis.target else None)
     show_status("PATH", (1, 1), False)
 
     combined_frame = np.vstack((frame, bar))
