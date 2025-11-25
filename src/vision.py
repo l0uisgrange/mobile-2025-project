@@ -8,6 +8,7 @@ class Vision:
     cap: cv2.VideoCapture
     grid: np.ndarray | None = None
     trust: bool = False
+    lock: bool = False
     raw_frame: np.ndarray | None = None
     per_frame: np.ndarray | None = None
     markers: tuple[Any, Any, Any] | None = None
@@ -24,7 +25,7 @@ class Vision:
 
     def step(self):
         """
-        Increments the grid age counter.
+        Whole vision analysis
         """
         # Resize window to ensure correct sizing
         cv2.resizeWindow(WINDOW_NAME, WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -36,8 +37,8 @@ class Vision:
             return
         # 2. Detect aruco markers
         self.detect_markers()
-        if self.markers is None or self.markers[1] is None or not all(
-                mid in self.markers[1].flatten() for mid in VISION_MARKERS):
+        if not self.lock and (self.markers is None or self.markers[1] is None or not all(
+                mid in self.markers[1].flatten() for mid in VISION_MARKERS)):
             self.trust = False
             return
         self.aruco_projection()
@@ -50,7 +51,8 @@ class Vision:
             self.trust = False
             return
         # 4. Build final grid
-        self.build_grid()
+        if not self.lock:
+            self.build_grid()
         self.trust = True
 
     def capture(self):
@@ -78,9 +80,14 @@ class Vision:
         │ 4 │ 3 │
         └───┴───┘
         """
-        corners, ids, rejected = self.markers
         height, width = self.raw_frame.shape[:2]
+        frame = self._hide_markers(VISION_ALL_MARKERS)
 
+        if self.lock:
+            self.per_frame = cv2.warpPerspective(frame, self.matrix, (width, height))
+            return
+
+        corners, ids, rejected = self.markers
         indices = {marker_id[0]: i for i, marker_id in enumerate(ids)}
 
         projection_points = np.float32([
@@ -99,21 +106,6 @@ class Vision:
             markers_centers.append([center_x, center_y])
 
         markers_centers = np.float32(markers_centers)
-
-        # Hide markers to not set them as obstacles
-        frame = self.raw_frame
-        for marker_id in VISION_ALL_MARKERS:
-            if marker_id not in indices:
-                continue
-            index = indices[marker_id]
-            pts = corners[index][0].reshape(-1, 1, 2)
-            rect = cv2.minAreaRect(pts)
-            (cx, cy), (w_box, h_box), angle = rect
-            w_box = max(1.0, w_box + 2 * VISION_MARKERS_PADDING)
-            h_box = max(1.0, h_box + 2 * VISION_MARKERS_PADDING)
-            box = cv2.boxPoints(((cx, cy), (w_box, h_box), angle))
-            box = np.int32(np.round(box))
-            cv2.fillPoly(frame, [box], COLOR_WHITE)
 
         # Project onto aruco
         self.matrix = cv2.getPerspectiveTransform(markers_centers, projection_points)
@@ -150,17 +142,28 @@ class Vision:
         margin_positions = (dilated > 0) & (grid == CELL_VOID)
         grid[margin_positions] = CELL_MARGIN
 
-        # Place robot and target
-        if abs(self.robot[1][0]) > GRID_SHAPE[0] or abs(self.robot[1][1]) > GRID_SHAPE[1]:
-            self.robot = None
-        if abs(self.target[0]) > GRID_SHAPE[0] or abs(self.target[1]) > GRID_SHAPE[1]:
-            self.target = None
-        if self.robot is not None:
-            grid[self.robot[1][0], self.robot[1][1]] = CELL_ROBOT
-        if self.target is not None:
-            grid[self.target[0], self.target[1]] = CELL_TARGET
-
         self.grid = grid
+
+    def _hide_markers(self, markers):
+        """
+        Adds white rectangle to hide markers (otherwise they're considered obstacles)
+        """
+        corners, ids, rejected = self.markers
+        indices = {marker_id[0]: i for i, marker_id in enumerate(ids)}
+        frame = self.raw_frame
+        for marker_id in markers:
+            if marker_id not in indices:
+                continue
+            index = indices[marker_id]
+            pts = self.markers[0][index][0].reshape(-1, 1, 2)
+            rect = cv2.minAreaRect(pts)
+            (cx, cy), (w_box, h_box), angle = rect
+            w_box = max(1.0, w_box + 2 * VISION_MARKERS_PADDING)
+            h_box = max(1.0, h_box + 2 * VISION_MARKERS_PADDING)
+            box = cv2.boxPoints(((cx, cy), (w_box, h_box), angle))
+            box = np.int32(np.round(box))
+            cv2.fillPoly(frame, [box], COLOR_WHITE)
+        return frame
 
     def render_grid(self, path, plan):
         """
@@ -180,6 +183,19 @@ class Vision:
         path_set = set(path) if path is not None else set()
         plan_set = set(plan) if plan is not None else set()
 
+        grid = self.grid.copy()
+
+        # Add robot and target
+        if self.robot is not None:
+            grid[self.robot[1][0], self.robot[1][1]] = CELL_ROBOT
+        if self.target is not None:
+            grid[self.target[0], self.target[1]] = CELL_TARGET
+        # Place robot and target
+        if abs(self.robot[1][0]) > GRID_SHAPE[0] or abs(self.robot[1][1]) > GRID_SHAPE[1]:
+            self.robot = None
+        if abs(self.target[0]) > GRID_SHAPE[0] or abs(self.target[1]) > GRID_SHAPE[1]:
+            self.target = None
+
         for r in range(rows):
             for c in range(cols):
                 y0 = r * cell_height
@@ -187,20 +203,20 @@ class Vision:
                 y1 = h if r == rows - 1 else (y0 + cell_height)
                 x1 = w if c == cols - 1 else (x0 + cell_width)
                 color = COLOR_BLACK
-                if self.grid[r, c] == CELL_MARGIN:
+                if grid[r, c] == CELL_MARGIN:
                     color = COLOR_GRAY
                 if (r, c) in plan_set:
                     color = COLOR_BLUE
                 elif (r, c) in path_set:
                     color = COLOR_LIGHTRED
-                if self.grid[r, c] == CELL_ROBOT:
+                if grid[r, c] == CELL_ROBOT:
                     color = COLOR_RED
-                elif self.grid[r, c] == CELL_TARGET:
+                elif grid[r, c] == CELL_TARGET:
                     color = COLOR_GREEN
-                if self.grid[r, c] != CELL_VOID or (r, c) in path_set or (r, c) in plan_set:
+                if grid[r, c] != CELL_VOID or (r, c) in path_set or (r, c) in plan_set:
                     cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
 
-        # Gris lines
+        # Grid lines
         for r in range(1, rows):
             y = r * cell_height
             cv2.line(vis, (0, y), (w, y), GRID_COLOR, GRID_THICKNESS)
@@ -296,3 +312,9 @@ class Vision:
         An external used method to check if the data provided by vision are trustworthy.
         """
         return self.robot is not None and self.target is not None and self.trust
+
+    def set_lock(self, lock: bool):
+        """
+        Locks the corner markers to prevent blinking (catch and no catch)
+        """
+        self.lock = lock
