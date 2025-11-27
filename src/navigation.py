@@ -40,37 +40,21 @@ class Navigation:
                            for c in range(self.cols)] for r in range(self.rows)]
         self.counter = count()
 
-    def update_plan(self, current_grid, current_plan, robot_position, goal_position):
-        # If grid changed, calculate new plan, otherwise return.
-        # temp_grid = copy.deepcopy(self.grid)
-        # for c in range(self.cols):
-        #     for r in range(self.rows):
-        #         if temp_grid[r, c] == CELL_OBSTACLE or current_grid[r, c] == CELL_MARGIN:
-        #             temp_grid[r, c] = CELL_OBSTACLE
-        #         else:
-        #             temp_grid[r, c] = CELL_VOID
+    def update_plan(self, grid, robot_position, goal_position):
+        self.grid = copy.deepcopy(grid)
 
-        if not np.array_equal(self.grid, current_grid):
-            self.grid = copy.deepcopy(current_grid)
-
+        for r in range(self.rows):
             for c in range(self.cols):
-                for r in range(self.rows):
-                    if self.grid[r, c] == CELL_OBSTACLE or current_grid[r, c] == CELL_MARGIN:
-                        self.grid[r, c] = CELL_OBSTACLE
-                    else:
-                        self.grid[r, c] = CELL_VOID
+                if self.grid[r, c] == CELL_ROBOT or self.grid[r, c] == CELL_TARGET:
+                    self.grid[r, c] = CELL_VOID
+                elif self.grid[r, c] == CELL_MARGIN or self.grid[r, c] == CELL_OBSTACLE:
+                    self.grid[r, c] = CELL_OBSTACLE
 
-            self.node_grid = [[Node(position=(r, c), nature=current_grid[r, c]) for c in range(
-                current_grid.shape[1])] for r in range(current_grid.shape[0])]
-            self.plan = self.generate_plan(robot_position, goal_position)
+        self.node_grid = [[Node(position=(r, c), nature=self.grid[r, c]) for c in range(
+            self.grid.shape[1])] for r in range(self.grid.shape[0])]
+        self.planning = self.generate_plan_and_path(robot_position, goal_position)
 
-            if self.plan == current_plan:
-                return (False, self.plan)
-            else:
-                return (True, self.plan)
-        else:
-            self.plan = current_plan
-            return (False, self.plan)
+        return self.planning
 
     def a_star(self, start, end):
         self.node_grid = [[Node(position=(r, c), nature=CELL_VOID)
@@ -135,7 +119,7 @@ class Navigation:
         movements = [(0, 1), (1, 0), (0, -1), (-1, 0),
                      (-1, 1), (1, 1), (1, -1), (-1, -1)]
 
-        s0 = s1 = s2 = s3 = d0 = d1 = d2 = d3 = False
+        s0 = s1 = s2 = s3 = False
 
         """
              offsets      diagonalOffsets:
@@ -197,7 +181,7 @@ class Navigation:
     def chebyshev_distance(self, dx, dy):
         return max(dx, dy)
 
-    def generate_plan(self, start, end):
+    def generate_plan_and_path(self, start, end):
         path = self.a_star(start, end)
 
         # Cas ou a_star n'a pas trouve de chemin
@@ -219,7 +203,7 @@ class Navigation:
         # plan.append(path[-1])
         plan = plan[1:]
         plan.append(end)
-        return plan
+        return (plan, path)
 
 
 if __name__ == "__main__":
@@ -243,7 +227,6 @@ if __name__ == "__main__":
     CELL_SIZE = 8
     WINDOW_WIDTH = GRID_SHAPE[1] * CELL_SIZE
     WINDOW_HEIGHT = GRID_SHAPE[0] * CELL_SIZE
-
 
     def mouse_callback(event, x, y, flags, param):
         global dragging_start, dragging_end, drawing_obstacle, erasing_obstacle, path, plan
@@ -290,7 +273,6 @@ if __name__ == "__main__":
             dragging_end = False
             drawing_obstacle = False
             erasing_obstacle = False
-
 
     cv2.namedWindow("Pathfinding")
     cv2.setMouseCallback("Pathfinding", mouse_callback)

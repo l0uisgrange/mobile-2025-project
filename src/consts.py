@@ -12,7 +12,7 @@ CAMERA_FPS = 30
 # —————————————————————————————————————————————————
 
 # Filtering
-VISION_TRESH = 80
+VISION_TRESH = 150
 VISION_TRESH_MAX = 255
 VISION_FILTER_DIAM = 9
 VISION_FILTER_SIGMA_COLOR = 100
