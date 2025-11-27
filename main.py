@@ -97,9 +97,11 @@ async def main():
                 # VISUALIZATION
                 # ——————————————————————————————————————————————
 
-                view = vis.render_grid(path, plan)
-                blended = cv2.addWeighted(vis.get_frame(), FRAME_OPACITY, view.astype(np.uint8), GRID_OPACITY, 0)
-                draw_control_room(vis, blended)
+    view = vis.render_grid(path, plan)
+    if view is None:
+        continue
+    blended = cv2.addWeighted(vis.get_frame(), FRAME_OPACITY, view.astype(np.uint8), GRID_OPACITY, 0)
+    draw_control_room(vis, blended)
 
             # Stop
             vis.release()
