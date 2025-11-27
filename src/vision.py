@@ -2,6 +2,7 @@ from src.utils import *
 from typing import Any
 import numpy as np
 import cv2
+import math
 
 
 class Vision:
@@ -272,8 +273,12 @@ class Vision:
         pts = cv2.perspectiveTransform(pts.reshape(-1, 1, 2), self.matrix).reshape(-1, 2)
 
         # Use cv2 to get the marker angle
-        _, _, angle = cv2.minAreaRect(pts)
-        angle = (angle + 360.0) % 360.0
+        # _, _, angle = cv2.minAreaRect(pts)
+        # angle = (angle + 360.0) % 360.0
+
+        p0 = pts[0]
+        p1 = pts[1]
+        angle = -math.atan2(p1[1] - p0[1], p1[0] - p0[0])#*(180.0/math.pi)
         return angle
 
     def get_frame(self):

@@ -5,6 +5,7 @@ Motion module
 """
 
 from src.consts import *
+import math
 
 
 class Motion:
@@ -24,16 +25,16 @@ class Motion:
     #         # Check if waypoint is reached
     #         if distance < DISTANCE_TOLERANCE:
 
-    async def follow_path(self, path, pose, client):
+    async def follow_path(self, path, pose):
         if self.check_reached(path, pose):
             if len(path) == 0:
                 return  # Path completed
 
-            await self.follow_path(path, pose, client)
+            await self.follow_path(path, pose)
             return
 
         if self.alligned(pose, path):
-            await self.goto_waypoint(path, pose, client)
+            await self.goto_waypoint(path, pose)
         else:
             await self.allign(pose, path)
 
@@ -41,11 +42,11 @@ class Motion:
         # self.allign() # Check if robot is alligned with nex waypoint, if not allign it (without moving forward). Return True if alligned withing tolerance.
         # self.controller() # Only if alligns returns True, move forward toward waypoint.
 
-    async def goto_waypoint(self, path, pose, client):
+    async def goto_waypoint(self, path, pose):
         global_controller_target_speeds = self.global_controller(path, pose)
-        await self.local_controller(global_controller_target_speeds, client)
+        await self.local_controller(global_controller_target_speeds)
     
-    async def local_controller(self, global_controller_target_speeds, client):
+    async def local_controller(self, global_controller_target_speeds):
         #Detect obstacle with prox horizontals sensors
         #Adjusts brake speeds of each wheel proportionally to the detected obstacle distance and distance of it
 
@@ -93,8 +94,8 @@ class Motion:
 
         #Set motor speeds
         await self.node.set_variables({
-            "motor.left.target": [round(left_speed)],
-            "motor.right.target": [round(right_speed)],
+            "motor.left.target": [round(120)], #CHANGE
+            "motor.right.target": [round(120)], #CHANGE
         })
 
 
@@ -134,6 +135,7 @@ class Motion:
         dx = x_wp - pose[X]
         dy = y_wp - pose[Y]
         target_angle = math.atan2(dy, dx)
+        target_angle -= math.pi/2  # Adjust for robot's orientation
         angle_diff = target_angle - pose[THETA]
 
         target_speed = ROTATION_SPEED
@@ -157,19 +159,33 @@ class Motion:
         })
 
     def alligned(self, pose, path):
-        x_wp, y_wp = path[0][X], path[0][Y]
-        dx = x_wp - pose[X]
-        dy = y_wp - pose[Y]
+        #shift referential for pose[theta] currently pose = 0rad if alligned with y axis. Shift it to be 0 when alligned with x axis.
+        #pose = (pose[X], pose[Y], pose[THETA] - math.pi/2)
+
+        x_wp = path[0][X]
+        y_wp = path[0][Y]
+        dx = (x_wp - pose[X])
+        dy = (y_wp - pose[Y])
         target_angle = math.atan2(dy, dx)
-        angle_diff = target_angle - pose[THETA]
+
+        #shifts target angle by 90 degrees to match pose theta referential
+        target_angle -= math.pi/2
+
+        angle_diff = (target_angle - pose[THETA])
+        print(pose[THETA]*(180.0/math.pi))
+        print(target_angle*(180.0/math.pi))
+
 
         # Normalize angle_diff to the range [-pi, pi]
-        angle_diff = (angle_diff + math.pi) % (2 * math.pi) - math.pi
+        #print(angle_diff)
+        #angle_diff = (angle_diff + math.pi) % (2 * math.pi) - math.pi
+        #print(angle_diff)
 
         return abs(angle_diff) < ANGLE_TOLERANCE
 
     def check_reached(self, path, pose):
-        x_wp, y_wp = path[0][X], path[0][Y]
+        x_wp = path[0][X]
+        y_wp = path[0][Y]
         dx = x_wp - pose[X]
         dy = y_wp - pose[Y]
         distance = (dx**2 + dy**2)**0.5
@@ -182,6 +198,13 @@ class Motion:
     # def local_controller(self):
     #     ...
 
+    async def toggle(self):
+        #Stop the robot
+        await self.node.set_variables({
+            "motor.left.target": [0],
+            "motor.right.target": [0],
+        })
+
 
 async def test(path, pose):
     with ClientAsync() as client:  # dans le main
@@ -193,7 +216,7 @@ async def test(path, pose):
             motion = Motion(node)
 
             for pose in poses:
-                await motion.follow_path(path, pose, client)
+                await motion.follow_path(path, pose)
                 await client.sleep(DT)
                 print(f"Current pose: {pose}, Remaining path: {path}")
 

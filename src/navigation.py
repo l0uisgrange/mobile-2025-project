@@ -10,6 +10,7 @@ Inspired by https://github.com/qiao/PathFinding.js/blob/master/src/finders/AStar
 import heapq
 import math
 import numpy as np
+import copy
 
 from dataclasses import dataclass
 from itertools import count
@@ -41,8 +42,24 @@ class Navigation:
 
     def update_plan(self, current_grid, current_plan, robot_position, goal_position):
         # If grid changed, calculate new plan, otherwise return.
-        if not np.array_equal(self.grid, current_grid, current_plan):
-            self.grid = current_grid
+        # temp_grid = copy.deepcopy(self.grid)
+        # for c in range(self.cols):
+        #     for r in range(self.rows):
+        #         if temp_grid[r, c] == CELL_OBSTACLE or current_grid[r, c] == CELL_MARGIN:
+        #             temp_grid[r, c] = CELL_OBSTACLE
+        #         else:
+        #             temp_grid[r, c] = CELL_VOID
+
+        if not np.array_equal(self.grid, current_grid):
+            self.grid = copy.deepcopy(current_grid)
+
+            for c in range(self.cols):
+                for r in range(self.rows):
+                    if self.grid[r, c] == CELL_OBSTACLE or current_grid[r, c] == CELL_MARGIN:
+                        self.grid[r, c] = CELL_OBSTACLE
+                    else:
+                        self.grid[r, c] = CELL_VOID
+
             self.node_grid = [[Node(position=(r, c), nature=current_grid[r, c]) for c in range(
                 current_grid.shape[1])] for r in range(current_grid.shape[0])]
             self.plan = self.generate_plan(robot_position, goal_position)
