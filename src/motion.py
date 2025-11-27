@@ -94,8 +94,8 @@ class Motion:
 
         #Set motor speeds
         await self.node.set_variables({
-            "motor.left.target": [round(120)], #CHANGE
-            "motor.right.target": [round(120)], #CHANGE
+            "motor.left.target": [round(10000)], #CHANGE
+            "motor.right.target": [round(10000)], #CHANGE
         })
 
 

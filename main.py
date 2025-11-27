@@ -55,7 +55,7 @@ async def main():
                 # Motion
                 # ——————————————————————————————————————————————
 
-                if plan:
+                if plan and vis.get_trust(): #TODO: retirer get_trust/changer ca avec filtre de kalman etc
                     await motion.follow_path(plan, (vis.robot[1][0], vis.robot[1][1], vis.robot[0]))
                     await client.sleep(DT)
 
