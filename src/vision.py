@@ -13,6 +13,7 @@ class Vision:
     grid: np.ndarray | None = None
     trust: bool = False
     lock: bool = False
+    lock_counter: int = 0
     raw_frame: np.ndarray | None = None
     per_frame: np.ndarray | None = None
     markers: tuple[Any, Any, Any] | None = None
@@ -33,6 +34,20 @@ class Vision:
         """
         # Resize window to ensure correct sizing
         cv2.resizeWindow(WINDOW_NAME, WINDOW_WIDTH, WINDOW_HEIGHT)
+
+        # Update lock status
+        if self.get_trust():
+            if self.lock_counter > VISION_LOCK_MIN:
+                self.lock = True
+                self.lock_counter = 0
+            else:
+                self.lock_counter += 1
+        else:
+            if self.lock_counter < -VISION_LOCK_MIN:
+                self.lock = False
+                self.lock_counter = 0
+            else:
+                self.lock_counter -= 1
 
         # 1. Capture frame
         self.capture()
@@ -314,26 +329,14 @@ class Vision:
         else:
             return self.raw_frame
 
-    def get_grid(self):
-        """
-        Simple grid getter.
-        """
-        return self.grid
-
     def get_unit(self):
         """
         Give the true unit in time
         """
-        return (0, 0)
+        return (x / y for x, y in zip(PLATEAU_DIM, GRID_SHAPE))
 
     def get_trust(self):
         """
         An external used method to check if the data provided by vision are trustworthy.
         """
         return self.robot is not None and self.target is not None and self.trust
-
-    def set_lock(self, lock: bool):
-        """
-        Locks the corner markers to prevent blinking (catch and no catch)
-        """
-        self.lock = lock

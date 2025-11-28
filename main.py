@@ -25,26 +25,9 @@ async def main():
             path = []
             plan = []
 
-            # Counter to automatically lock grid
-            lock_counter = 0
-
             # Main loop
             while True:
                 # ——— VISION (src.vision) ————————————————————————————
-
-                # Update lock status
-                if vis.get_trust():
-                    if lock_counter > VISION_LOCK_MIN:
-                        vis.set_lock(True)
-                        lock_counter = 0
-                    else:
-                        lock_counter += 1
-                else:
-                    if lock_counter < -VISION_LOCK_MIN:
-                        vis.set_lock(False)
-                        lock_counter = 0
-                    else:
-                        lock_counter -= 1
 
                 # Step function
                 vis.step()
