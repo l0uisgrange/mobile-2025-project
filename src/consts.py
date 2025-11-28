@@ -7,6 +7,7 @@ WINDOW_WIDTH = 774
 WINDOW_HEIGHT = 500
 CAMERA_FPS = 30
 VISION_LOCK_MIN = 20
+PLATEAU_DIM = (4 * 29.7 + 21 - 7, 2 * 29.7 + 6 + 1.5 - 7)
 
 # —————————————————————————————————————————————————
 # Vision
@@ -45,7 +46,7 @@ STATUS_BAR_FONTTHICKNESS = 2
 GRID_OPACITY = 0.65
 FRAME_OPACITY = 0.35
 GRID_RESOLUTION = 71
-GRID_SHAPE = (GRID_RESOLUTION, int(GRID_RESOLUTION * 1.5)) # (y, x)
+GRID_SHAPE = (GRID_RESOLUTION, int(GRID_RESOLUTION * 1.5))  # (y, x)
 GRID_COLOR = (230, 230, 230)
 GRID_THICKNESS = 2
 
@@ -87,7 +88,7 @@ WEIGHT = 1
 # Motion
 # —————————————————————————————————————————————————
 
-DISTANCE_TOLERANCE = 5.0 #in grid units
+DISTANCE_TOLERANCE = 5.0  # in grid units
 ANGLE_TOLERANCE = 0.5
 ROTATION_SPEED = 200
 K_ERROR_ANGLE = 200
