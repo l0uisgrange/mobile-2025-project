@@ -51,16 +51,16 @@ async def main():
                 # ——— NAVIGATION (src.navigation) ————————————————————
 
                 # TODO: chnage here depending on Kalman. Retirer le and not lock aussi.
-                if vis.get_trust() and vis.lock:
-                    if not plan:
-                        (plan, path) = nav.update_plan(
-                            vis.grid, vis.robot[1], vis.target)
+                # if vis.get_trust() and vis.lock:
+                #     if not plan:
+                #         (plan, path) = nav.update_plan(
+                #             vis.grid, vis.robot[1], vis.target)
 
                 # ——— MOTION (src.motion) ————————————————————————————
 
-                if plan and vis.get_trust():  # TODO: retirer get_trust/changer ca avec filtre de kalman etc
-                    await mot.follow_path(plan, (vis.robot[1][0], vis.robot[1][1], vis.robot[0]))
-                    await client.sleep(DT)
+                # if plan and vis.get_trust():  # TODO: retirer get_trust/changer ca avec filtre de kalman etc
+                #     await mot.follow_path(plan, (vis.robot[1][0], vis.robot[1][1], vis.robot[0]))
+                #     await client.sleep(DT)
 
                 # ——— VISUALIZATION (src.utils) ——————————————————————
 
