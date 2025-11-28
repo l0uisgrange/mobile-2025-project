@@ -64,6 +64,7 @@ def draw_control_room(vis, frame: np.ndarray):
     combined_frame = np.vstack((frame, bar))
 
     cv2.imshow(WINDOW_NAME, combined_frame)
+    cv2.waitKey(2)
 
 
 def draw_arrow(img, pnt, theta, length, thickness=2, tip_length=0.2, degrees=False):
