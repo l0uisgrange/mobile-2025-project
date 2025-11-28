@@ -65,6 +65,8 @@ class ThymioEKF:
         # Measurement noise (camera uncertainty) noise camera
         self.R_vision = np.diag([5.0, 5.0, 0.05])
 
+        self.w = []
+
     # ---------------------------------------------
     # PREDICTION (wheel encoders only)
     # ---------------------------------------------
@@ -93,6 +95,10 @@ class ThymioEKF:
         self.x[0] += v * np.cos(th) * dt
         self.x[1] += v * np.sin(th) * dt
         self.x[2] += w * dt
+
+        self.w[0] = self.x[0]
+        self.w[1] = self.x[1]
+        self.w[2] = self.x[2]
 
         # Jacobian F (linearization of f(x))
         F = np.eye(5)
