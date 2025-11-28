@@ -277,14 +277,14 @@ if __name__ == "__main__":
     cv2.namedWindow("Pathfinding")
     cv2.setMouseCallback("Pathfinding", mouse_callback)
 
-    print("Controls:")
-    print("- Drag green square to move start position")
-    print("- Drag red square to move end position")
-    print("- Click/drag on empty cells to add obstacles")
-    print("- Click/drag on obstacles to remove them")
-    print("- Press 's' to run A* pathfinding")
-    print("- Press 'c' to clear obstacles")
-    print("- Press 'q' to quit")
+    # print("Controls:")
+    # print("- Drag green square to move start position")
+    # print("- Drag red square to move end position")
+    # print("- Click/drag on empty cells to add obstacles")
+    # print("- Click/drag on obstacles to remove them")
+    # print("- Press 's' to run A* pathfinding")
+    # print("- Press 'c' to clear obstacles")
+    # print("- Press 'q' to quit")
 
     while True:
         # Create visualization

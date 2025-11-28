@@ -90,7 +90,7 @@ class Motion:
         left_speed = global_controller_target_speeds[0]
         right_speed = global_controller_target_speeds[1]
 
-        print(f"Prox values: {prox_values}, Left speed: {left_speed:.2f}, Right speed: {right_speed:.2f}")
+        #print(f"Prox values: {prox_values}, Left speed: {left_speed:.2f}, Right speed: {right_speed:.2f}")
 
         #Set motor speeds
         await self.node.set_variables({

@@ -297,10 +297,10 @@ class Vision:
 
         p0 = pts[0]
         p1 = pts[1]
-        print(p0)
-        print(p1)
+        #print(p0)
+        #print(p1)
         angle = -math.atan2(p1[1] - p0[1], p1[0] - p0[0])
-        print(angle)
+        #print(angle)
         return angle
 
     def get_frame(self):
