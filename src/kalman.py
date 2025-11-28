@@ -4,6 +4,11 @@
 import numpy as np
 
 
+#conversion factor = 0.4109589041095
+#thymion speed = 60 ---> in mm/s = 20.55
+
+#speed variance = 122.86838250672817 mm^2/s^2
+
 """
 -----------------------------------
 # Create EKF with initial pose (x0, y0, theta0)
@@ -37,9 +42,25 @@ covariance (np.array 5x5):
 
 """
 
+timeS = 0.1
+speedVar = 122.86838250672817  #mm^2/s^2
+angleVar = 2 * speedVar  * (timeS**2) / (90**2) #rad
+positionVar = speedVar * timeS**2   #mm^2
+
+QX = positionVar
+QY = positionVar
+QAngle = angleVar
+QVL = speedVar
+QVR = speedVar
+
+conv = 0.4109589041095
+
+CELL_X = 15   #mm
+CELL_Y = 20   #mm
+
 
 class ThymioEKF:
-    def __init__(self, init_pose, L=95.0, dt=0.1):
+    def __init__(self, init_pose, L=90.0, dt=0.1):
         """
         Initializes the EKF with:
         - initial pose [x, y, theta]
@@ -53,6 +74,7 @@ class ThymioEKF:
         self.dt = dt
         self.L = L
 
+
         #assumed to be at given position and with velocities 0
         self.x = np.array([init_pose[0], init_pose[1], init_pose[2], 0.0, 0.0])
         
@@ -60,17 +82,17 @@ class ThymioEKF:
         self.P = np.eye(5) * 1.0
 
         # Process noise (how uncertain the motion is) noise encoder
-        self.Q = np.diag([1e-2, 1e-2, 1e-3, 3.0, 3.0])
+        self.Q = np.diag([QX, QY, QAngle, QVL, QVR])
 
         # Measurement noise (camera uncertainty) noise camera
-        self.R_vision = np.diag([5.0, 5.0, 0.05])
+        self.R_vision = np.diag([15.0**2, 20.0**2, (np.deg2rad(3))**2])
 
         self.w = []
 
     # ---------------------------------------------
     # PREDICTION (wheel encoders only)
     # ---------------------------------------------
-    def predict(self, vL, vR):
+    def predict(self, vL_raw, vR_raw):
         """
         Predicts the next state using only encoders
 
@@ -83,6 +105,9 @@ class ThymioEKF:
         """
         x, y, th, _, _ = self.x
         dt = self.dt
+
+        vL = vL_raw*conv
+        vR = vR_raw*conv
 
         # update wheel speeds in the state
         self.x[3] = vL
@@ -133,7 +158,16 @@ class ThymioEKF:
         6. Compute Kalman gain K.
         7. Update state and covariance.
         """
-        z = np.array([cam_pose[0], cam_pose[1], cam_pose[2]])
+        cell_x, cell_y, theta_deg = cam_pose
+
+        # Convert to mm from gridCellSize
+        x_mm = cell_x * CELL_X
+        y_mm = cell_y * CELL_Y
+
+        #convert degrees into radians
+        theta_rad = theta_deg * np.pi / 180
+
+        z = np.array([x_mm, y_mm, theta_rad])
 
         # h(x) = expected measurement from predicted state
         h = self.x[:3]
