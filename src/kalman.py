@@ -56,13 +56,13 @@ class ThymioEKF:
         #assumed to be at given position and with velocities 0
         self.x = np.array([init_pose[0], init_pose[1], init_pose[2], 0.0, 0.0])
         
-        # P is the covariance matrix (initial uncertainty)
+        # P is the covariance matrix (initial uncertainty) covariance matrix
         self.P = np.eye(5) * 1.0
 
-        # Process noise (how uncertain the motion is)
+        # Process noise (how uncertain the motion is) noise encoder
         self.Q = np.diag([1e-2, 1e-2, 1e-3, 3.0, 3.0])
 
-        # Measurement noise (camera uncertainty)
+        # Measurement noise (camera uncertainty) noise camera
         self.R_vision = np.diag([5.0, 5.0, 0.05])
 
     # ---------------------------------------------

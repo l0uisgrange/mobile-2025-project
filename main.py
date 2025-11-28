@@ -5,6 +5,7 @@ from tdmclient import ClientAsync
 
 from src.navigation import Navigation
 from src.motion import Motion
+from src.kalman import ThymioEKF
 from src.vision import *
 
 
@@ -15,6 +16,7 @@ async def main():
             motion = Motion(node)
             vis = Vision()
             nav = Navigation()
+            
 
             # Wait a second for camera connection time
             sleep(1)
