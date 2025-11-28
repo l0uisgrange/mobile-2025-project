@@ -204,6 +204,12 @@ class Vision:
 
         grid = copy.deepcopy(self.grid)
 
+        # Nullify the robot if it's outside the grid
+        if self.robot is not None and (abs(self.robot[1][0]) > GRID_SHAPE[0] or abs(self.robot[1][1]) > GRID_SHAPE[1]):
+            self.robot = None
+        if self.target is not None and (abs(self.target[0]) > GRID_SHAPE[0] or abs(self.target[1]) > GRID_SHAPE[1]):
+            self.target = None
+
         # Add robot and target
         if est_pos is not None:
             grid[est_pos[0], est_pos[1]] = CELL_EST_POS
@@ -214,11 +220,6 @@ class Vision:
         if self.target is not None:
             grid[self.target[0], self.target[1]] = CELL_TARGET
 
-        # Nullify the robot if it's outside the grid
-        if abs(self.robot[1][0]) > GRID_SHAPE[0] or abs(self.robot[1][1]) > GRID_SHAPE[1]:
-            self.robot = None
-        if abs(self.target[0]) > GRID_SHAPE[0] or abs(self.target[1]) > GRID_SHAPE[1]:
-            self.target = None
 
         for r in range(rows):
             for c in range(cols):
