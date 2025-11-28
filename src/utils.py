@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import math
 
 from src.consts import *
 
@@ -54,7 +55,7 @@ def draw_control_room(vis, frame: np.ndarray):
     show_status("TRUST", (0, 0), vis.trust)
     show_status("ROBOT", (0, 1), vis.robot is not None,
                 gray_text='(' + str(vis.robot[1][0]) + ', ' + str(vis.robot[1][1]) + ') AT ' + str(
-                    int(vis.robot[0])) + ' DEGREES' if vis.robot else None)
+                    round(vis.robot[0], 3)) + ' DEGREES' if vis.robot else None)
     show_status("TARGET", (1, 0), vis.target is not None,
                 gray_text='(' + str(vis.target[0]) + ', ' + str(vis.target[1]) + ')' if vis.target else None)
     show_status("PATH", (1, 1), False)
@@ -63,6 +64,20 @@ def draw_control_room(vis, frame: np.ndarray):
     combined_frame = np.vstack((frame, bar))
 
     cv2.imshow(WINDOW_NAME, combined_frame)
+
+
+def draw_arrow(img, pnt, theta, length, thickness=2, tip_length=0.2, degrees=False):
+    """
+    Draws an arrow using an angle and origin point
+    """
+    if degrees:
+        theta = math.radians(theta)
+    dx = length * math.cos(theta)
+    dy = -length * math.sin(theta)
+    x0, y0 = int(round(pnt[0])), int(round(pnt[1]))
+    x1, y1 = int(round(pnt[0] + dx)), int(round(pnt[1] + dy))
+    cv2.arrowedLine(img, (x0, y0), (x1, y1), COLOR_BLUE, thickness=thickness, tipLength=tip_length)
+    return img
 
 
 def to_grid_units(frame: np.ndarray, coordinate: tuple[float, float]) -> tuple[int, int]:
