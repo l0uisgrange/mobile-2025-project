@@ -243,7 +243,8 @@ class Vision:
                 if grid[r, c] != CELL_VOID or (r, c) in path_set or (r, c) in plan_set:
                     cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
 
-        vis = draw_arrow(vis, self.robot[1], self.robot[0], 100)
+        if self.robot is not None:
+            vis = draw_arrow(vis, self.robot[1], self.robot[0], 100)
 
         return vis
 
