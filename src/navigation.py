@@ -52,7 +52,8 @@ class Navigation:
 
         self.node_grid = [[Node(position=(r, c), nature=self.grid[r, c]) for c in range(
             self.grid.shape[1])] for r in range(self.grid.shape[0])]
-        self.planning = self.generate_plan_and_path(robot_position, goal_position)
+        self.planning = self.generate_plan_and_path(
+            robot_position, goal_position)
 
         return self.planning
 
@@ -331,13 +332,13 @@ if __name__ == "__main__":
 
             path = nav.a_star(tuple(start), tuple(end))
             if path:
-                #print(f"Path found with {len(path)} steps")
-                #print("Path:", path)
+                # print(f"Path found with {len(path)} steps")
+                # print("Path:", path)
                 plan = nav.generate_plan(tuple(start), tuple(end))
-                #print(f"Plan generated with {len(plan)} waypoints")
-                #print("Plan:", plan)
+                # print(f"Plan generated with {len(plan)} waypoints")
+                # print("Plan:", plan)
             else:
-                #print("No path found!")
+                # print("No path found!")
                 plan = []
 
         elif key == ord('c'):

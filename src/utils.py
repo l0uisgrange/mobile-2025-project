@@ -10,7 +10,7 @@ def draw_control_room(vis, frame: np.ndarray):
     """
     # Ensure frame is 3D (BGR)
     if frame.ndim == 2:
-        print("Input has wrong dimension")
+        #print("Input has wrong dimension")
         exit(1)
 
     # Add a status bar
