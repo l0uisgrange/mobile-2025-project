@@ -1,6 +1,6 @@
 # The Thymio escape
 
-For our 2025 fall semester project for the _Basics of mobile robotics_ course at EPFL, we chose to save Thymio from its world.
+For our 2025 fall semester project for the _Basics of mobile robotics_ course at EPFL, we chose to save Thymio from its world. To escape, the robot needs to join the portal as soon as possible and avoid any black obstacles in his way.
 
 | EPFL                                    | Full name                          |
 |:----------------------------------------|:-----------------------------------|
