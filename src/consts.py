@@ -6,6 +6,7 @@ WINDOW_NAME = "mobile"
 WINDOW_WIDTH = 774
 WINDOW_HEIGHT = 500
 CAMERA_FPS = 30
+VISION_LOCK_MIN = 20
 
 # —————————————————————————————————————————————————
 # Vision

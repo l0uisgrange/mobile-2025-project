@@ -228,6 +228,8 @@ class Vision:
             x = c * cell_width
             cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
 
+        vis = draw_arrow(vis, self.robot[1], self.robot[0], 5)
+
         return vis
 
     def find_targets(self):
@@ -297,10 +299,10 @@ class Vision:
 
         p0 = pts[0]
         p1 = pts[1]
-        #print(p0)
-        #print(p1)
+        # print(p0)
+        # print(p1)
         angle = -math.atan2(p1[1] - p0[1], p1[0] - p0[0])
-        #print(angle)
+        # print(angle)
         return angle
 
     def get_frame(self):
@@ -317,6 +319,12 @@ class Vision:
         Simple grid getter.
         """
         return self.grid
+
+    def get_unit(self):
+        """
+        Give the true unit in time
+        """
+        return (0, 0)
 
     def get_trust(self):
         """

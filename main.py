@@ -7,61 +7,60 @@ from src.navigation import Navigation
 from src.motion import Motion
 from src.vision import *
 
-
 async def main():
     with ClientAsync() as client:
         with await client.lock() as node:
             await node.wait_for_variables({"motor.left.target", "motor.right.target", "prox.horizontal"})
-            motion = Motion(node)
+            mot = Motion(node)
             vis = Vision()
             nav = Navigation()
 
             # Wait a second for camera connection time
             sleep(1)
 
-            # TODO: remove (vision locking)
-            lock = False
-
             # TODO: maybe remove
             path = []
             plan = []
+
+            # Counter to automatically lock grid
+            lock_counter = 0
+
             # Main loop
             while True:
-                # Stop command
-                key = cv2.waitKey(2) & 0xFF
-                # Exit main loop
-                if key == ord('q'):
-                    break
-                if key == ord('l'):
-                    lock = not lock
+                # ——— VISION (src.vision) ————————————————————————————
 
-                # ——————————————————————————————————————————————
-                # VISION (src.vision)
-                # ——————————————————————————————————————————————
+                # Update lock status
+                if vis.get_trust():
+                    if lock_counter > VISION_LOCK_MIN:
+                        vis.set_lock(True)
+                        lock_counter = 0
+                    else:
+                        lock_counter += 1
+                else:
+                    if lock_counter < -VISION_LOCK_MIN:
+                        vis.set_lock(False)
+                        lock_counter = 0
+                    else:
+                        lock_counter -= 1
 
+                # Step function
                 vis.step()
 
-                # ——————————————————————————————————————————————
-                # Navigation
-                # ——————————————————————————————————————————————
+                # ——— NAVIGATION (src.navigation) ————————————————————
 
                 # TODO: chnage here depending on Kalman. Retirer le and not lock aussi.
-                if vis.get_trust() and lock:
+                if vis.get_trust() and vis.lock:
                     if not plan:
                         (plan, path) = nav.update_plan(
                             vis.grid, vis.robot[1], vis.target)
 
-                # ——————————————————————————————————————————————
-                # Motion
-                # ——————————————————————————————————————————————
+                # ——— MOTION (src.motion) ————————————————————————————
 
-                if plan and vis.get_trust(): #TODO: retirer get_trust/changer ca avec filtre de kalman etc
-                    await motion.follow_path(plan, (vis.robot[1][0], vis.robot[1][1], vis.robot[0]))
+                if plan and vis.get_trust():  # TODO: retirer get_trust/changer ca avec filtre de kalman etc
+                    await mot.follow_path(plan, (vis.robot[1][0], vis.robot[1][1], vis.robot[0]))
                     await client.sleep(DT)
 
-                # ——————————————————————————————————————————————
-                # VISUALIZATION
-                # ——————————————————————————————————————————————
+                # ——— VISUALIZATION (src.utils) ——————————————————————
 
                 view = vis.render_grid(path, plan)
                 if view is None:
