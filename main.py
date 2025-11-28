@@ -19,7 +19,7 @@ async def main():
             
 
             # Wait a second for camera connection time
-            sleep(1)
+            sleep(2)
 
             # TODO: maybe remove
             path = []

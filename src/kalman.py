@@ -96,9 +96,14 @@ class ThymioEKF:
         self.x[1] += v * np.sin(th) * dt
         self.x[2] += w * dt
 
-        self.w[0] = self.x[0]
-        self.w[1] = self.x[1]
-        self.w[2] = self.x[2]
+        if self.w is not None:
+            self.w.append(self.x[0])
+            self.w.append(self.x[1])
+            self.w.append(self.x[2])
+        else:
+            self.w[0] = self.x[0]
+            self.w[1] = self.x[1]
+            self.w[2] = self.x[2]
 
         # Jacobian F (linearization of f(x))
         F = np.eye(5)
