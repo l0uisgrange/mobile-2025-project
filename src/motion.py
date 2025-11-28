@@ -118,7 +118,7 @@ class Motion:
         left_speed = base_speed - correction
         right_speed = base_speed + correction
 
-        print(f"Angle diff: {angle_diff:.2f}, Correction: {correction:.2f}, Left speed: {left_speed:.2f}, Right speed: {right_speed:.2f}")
+        #print(f"Angle diff: {angle_diff:.2f}, Correction: {correction:.2f}, Left speed: {left_speed:.2f}, Right speed: {right_speed:.2f}")
 
         # Set motor speeds
         # await self.node.set_variables({
@@ -172,8 +172,8 @@ class Motion:
         target_angle -= math.pi/2
 
         angle_diff = (target_angle - pose[THETA])
-        print(pose[THETA]*(180.0/math.pi))
-        print(target_angle*(180.0/math.pi))
+        #print(pose[THETA]*(180.0/math.pi))
+        #print(target_angle*(180.0/math.pi))
 
 
         # Normalize angle_diff to the range [-pi, pi]
@@ -218,7 +218,7 @@ async def test(path, pose):
             for pose in poses:
                 await motion.follow_path(path, pose)
                 await client.sleep(DT)
-                print(f"Current pose: {pose}, Remaining path: {path}")
+                #print(f"Current pose: {pose}, Remaining path: {path}")
 
             # await asyncio.sleep(2.0)
 

@@ -331,13 +331,13 @@ if __name__ == "__main__":
 
             path = nav.a_star(tuple(start), tuple(end))
             if path:
-                print(f"Path found with {len(path)} steps")
-                print("Path:", path)
+                #print(f"Path found with {len(path)} steps")
+                #print("Path:", path)
                 plan = nav.generate_plan(tuple(start), tuple(end))
-                print(f"Plan generated with {len(plan)} waypoints")
-                print("Plan:", plan)
+                #print(f"Plan generated with {len(plan)} waypoints")
+                #print("Plan:", plan)
             else:
-                print("No path found!")
+                #print("No path found!")
                 plan = []
 
         elif key == ord('c'):
