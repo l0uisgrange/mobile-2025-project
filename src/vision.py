@@ -184,7 +184,7 @@ class Vision:
             cv2.fillPoly(frame, [box], COLOR_WHITE)
         return frame
 
-    def render_grid(self, path, plan):
+    def render_grid(self, path, plan, est_pos, kal_pos):
         """
         Creates a 3D BGR np.ndarray grid from the current grid data.
         """
@@ -205,11 +205,16 @@ class Vision:
         grid = copy.deepcopy(self.grid)
 
         # Add robot and target
+        if est_pos is not None:
+            grid[est_pos[0], est_pos[1]] = CELL_EST_POS
+        if kal_pos is not None:
+            grid[kal_pos[0], kal_pos[1]] = CELL_KAL_POS
         if self.robot is not None:
             grid[self.robot[1][0], self.robot[1][1]] = CELL_ROBOT
         if self.target is not None:
             grid[self.target[0], self.target[1]] = CELL_TARGET
-        # Place robot and target
+
+        # Nullify the robot if it's outside the grid
         if abs(self.robot[1][0]) > GRID_SHAPE[0] or abs(self.robot[1][1]) > GRID_SHAPE[1]:
             self.robot = None
         if abs(self.target[0]) > GRID_SHAPE[0] or abs(self.target[1]) > GRID_SHAPE[1]:
@@ -225,9 +230,11 @@ class Vision:
                 if grid[r, c] == CELL_MARGIN:
                     color = COLOR_GRAY
                 if (r, c) in plan_set:
+                    color = COLOR_WHITE
+                if grid[r, c] == CELL_EST_POS:
                     color = COLOR_BLUE
-                elif (r, c) in path_set:
-                    color = COLOR_LIGHTRED
+                if grid[r, c] == CELL_KAL_POS:
+                    color = COLOR_PURPLE
                 if grid[r, c] == CELL_ROBOT:
                     color = COLOR_RED
                 elif grid[r, c] == CELL_TARGET:
@@ -235,15 +242,7 @@ class Vision:
                 if grid[r, c] != CELL_VOID or (r, c) in path_set or (r, c) in plan_set:
                     cv2.rectangle(vis, (x0, y0), (x1 - 1, y1 - 1), color, thickness=-1)
 
-        # Grid lines
-        for r in range(1, rows):
-            y = r * cell_height
-            cv2.line(vis, (0, y), (w, y), GRID_COLOR, GRID_THICKNESS)
-        for c in range(1, cols):
-            x = c * cell_width
-            cv2.line(vis, (x, 0), (x, h), GRID_COLOR, GRID_THICKNESS)
-
-        vis = draw_arrow(vis, self.robot[1], self.robot[0], 5)
+        vis = draw_arrow(vis, self.robot[1], self.robot[0], 100)
 
         return vis
 

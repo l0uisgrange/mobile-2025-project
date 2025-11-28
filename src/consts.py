@@ -6,7 +6,7 @@ WINDOW_NAME = "mobile"
 WINDOW_WIDTH = 774
 WINDOW_HEIGHT = 500
 CAMERA_FPS = 30
-VISION_LOCK_MIN = 20
+VISION_LOCK_MIN = 5
 PLATEAU_DIM = (4 * 29.7 + 21 - 7, 2 * 29.7 + 6 + 1.5 - 7)
 
 # —————————————————————————————————————————————————
@@ -14,7 +14,7 @@ PLATEAU_DIM = (4 * 29.7 + 21 - 7, 2 * 29.7 + 6 + 1.5 - 7)
 # —————————————————————————————————————————————————
 
 # Filtering
-VISION_TRESH = 150
+VISION_TRESH = 120
 VISION_TRESH_MAX = 255
 VISION_FILTER_DIAM = 9
 VISION_FILTER_SIGMA_COLOR = 100
@@ -53,7 +53,7 @@ GRID_THICKNESS = 2
 TEXT_TOP_MARGIN = 60
 TEXT_SIZE = 2
 TEXT_PADDING = 40
-TEXT_GRAY_POSITION = 150
+TEXT_GRAY_POSITION = 120
 TEXT_DELTA = 5
 
 # —————————————————————————————————————————————————
@@ -64,6 +64,7 @@ COLOR_BLACK = (0, 0, 0)
 COLOR_WHITE = (255, 255, 255)
 COLOR_GRAY = (150, 150, 150)
 COLOR_RED = (0, 0, 255)
+COLOR_PURPLE = (128, 0, 128)
 COLOR_LIGHTRED = (150, 150, 255)
 COLOR_BLUE = (255, 0, 0)
 COLOR_GREEN = (0, 255, 0)
@@ -77,6 +78,8 @@ CELL_OBSTACLE = -1
 CELL_ROBOT = 2
 CELL_MARGIN = 3
 CELL_TARGET = 4
+CELL_EST_POS = 5
+CELL_KAL_POS = 6
 
 X = 0
 Y = 1

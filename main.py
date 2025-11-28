@@ -71,7 +71,7 @@ async def main():
 
                 # ——— VISUALIZATION (src.utils) ——————————————————————
 
-                view = vis.render_grid(path, plan)
+                view = vis.render_grid(path, plan, (0, 0), (0, 0))
                 if view is None:
                     continue
                 blended = cv2.addWeighted(

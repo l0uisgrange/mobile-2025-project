@@ -11,7 +11,7 @@ def draw_control_room(vis, frame: np.ndarray):
     """
     # Ensure frame is 3D (BGR)
     if frame.ndim == 2:
-        #print("Input has wrong dimension")
+        print("Input has wrong dimension")
         exit(1)
 
     # Add a status bar
@@ -54,8 +54,8 @@ def draw_control_room(vis, frame: np.ndarray):
 
     show_status("TRUST", (0, 0), vis.trust)
     show_status("ROBOT", (0, 1), vis.robot is not None,
-                gray_text='(' + str(vis.robot[1][0]) + ', ' + str(vis.robot[1][1]) + ') AT ' + str(
-                    round(vis.robot[0], 3)) + ' DEGREES' if vis.robot else None)
+                gray_text='(' + str(round(vis.robot[0], 3)) + ', ' + str(vis.robot[1][0]) + ', ' + str(
+                    vis.robot[1][1]) + ')' if vis.robot else None)
     show_status("TARGET", (1, 0), vis.target is not None,
                 gray_text='(' + str(vis.target[0]) + ', ' + str(vis.target[1]) + ')' if vis.target else None)
     show_status("PATH", (1, 1), False)
@@ -67,17 +67,21 @@ def draw_control_room(vis, frame: np.ndarray):
     cv2.waitKey(2)
 
 
-def draw_arrow(img, pnt, theta, length, thickness=2, tip_length=0.2, degrees=False):
+def draw_arrow(img, pnt, theta, length, thickness=2, tip_length=0.5, degrees=False):
     """
     Draws an arrow using an angle and origin point
     """
+    h, w = img.shape[:2]
+    cell_height = h // GRID_SHAPE[0]
+    cell_width = w // GRID_SHAPE[1]
     if degrees:
         theta = math.radians(theta)
-    dx = length * math.cos(theta)
-    dy = -length * math.sin(theta)
-    x0, y0 = int(round(pnt[0])), int(round(pnt[1]))
-    x1, y1 = int(round(pnt[0] + dx)), int(round(pnt[1] + dy))
-    cv2.arrowedLine(img, (x0, y0), (x1, y1), COLOR_BLUE, thickness=thickness, tipLength=tip_length)
+    dx = -length * math.sin(theta)
+    dy = length * math.cos(theta)
+    x0, y0 = int(round(pnt[0] * cell_height + cell_height / 2)), int(round(pnt[1] * cell_width + cell_width / 2))
+    x1, y1 = int(round(pnt[0] * cell_height + cell_height / 2 + dx)), int(
+        round(pnt[1] * cell_width + cell_width / 2 + dy))
+    cv2.arrowedLine(img, (y0, x0), (y1, x1), COLOR_RED, thickness=thickness, tipLength=tip_length)
     return img
 
 
